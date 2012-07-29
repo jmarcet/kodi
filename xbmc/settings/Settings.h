@@ -29,6 +29,7 @@
 #include "settings/SettingCreator.h"
 #include "settings/lib/ISettingCallback.h"
 #include "threads/CriticalSection.h"
+#include "utils/md5.h"
 #include "utils/Variant.h"
 
 class CSetting;
