@@ -1381,7 +1381,17 @@
             <formatlabel>14044</formatlabel>
           </control>
         </setting>
-        <setting id="pvrpowermanagement.setwakeupcmd" type="string" label="19245" help="36243">
+#if !defined(_WIN_32)
+        <setting id="pvrpowermanagement.inhibitiflogged" type="boolean" label="19300" help="">
+          <level>2</level>
+          <default>true</default>
+          <dependencies>
+            <dependency type="enable" setting="pvrpowermanagement.enabled" operator="is">true</dependency>
+          </dependencies>
+          <control type="toggle" />
+        </setting>
+#endif
+        <setting id="pvrpowermanagement.setwakeupcmd" type="string" label="19245" help="">
           <level>2</level>
           <default></default>
           <constraints>
