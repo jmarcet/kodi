@@ -299,6 +299,18 @@ namespace PVR
     bool IsIdle(void) const;
 
     /*!
+     * @brief Check whether there are current local logins.
+     * @return True if there are local users logged in, false otherwise.
+     */
+    bool IsUserLogged(void) const;
+
+    /*!
+     * @brief Check whether suspension should be canceled.
+     * @return True if /tmp/.do_not_suspend exists.
+     */
+    bool IsSuspendCanceled(void) const;
+
+    /*!
      * @brief Set the current playing group, used to load the right channel.
      * @param group The new group.
      */
