@@ -59,6 +59,10 @@
 #include "guilib/Key.h"
 #include "dialogs/GUIDialogPVRChannelManager.h"
 
+#if !defined(_WIN_32)
+#include <utmpx.h>
+#endif
+
 using namespace std;
 using namespace MUSIC_INFO;
 using namespace PVR;
@@ -1321,7 +1325,7 @@ bool CPVRManager::IsIdle(void) const
   if (!IsStarted())
     return true;
 
-  if (IsRecording() || IsPlaying()) // pvr recording or playing?
+  if (IsRecording() || IsPlaying() || IsUserLogged() || IsSuspendCanceled()) // pvr recording or playing or user logged in?
   {
     return false;
   }
@@ -1338,6 +1342,51 @@ bool CPVRManager::IsIdle(void) const
   }
 
   return true;
+}
+
+bool CPVRManager::IsUserLogged(void) const
+{
+#if !defined(_WIN_32)
+    const bool inhibitIfLogged = CSettings::Get().GetBool("pvrpowermanagement.inhibitiflogged");
+    if (!inhibitIfLogged) return false;
+
+    struct utmpx *ut;
+    bool userLoggedIn = false;
+
+    setutxent();
+    while ((ut = getutxent()) != NULL)
+    {
+      if (ut->ut_type == USER_PROCESS && strcmp(ut->ut_line,"ttyS0") != 0)
+      {
+        userLoggedIn = true;
+        break;
+      }
+    }
+    endutxent();
+
+    return userLoggedIn;
+#else
+    return false;
+#endif
+}
+
+bool CPVRManager::IsSuspendCanceled(void) const
+{
+
+    const bool cancelSuspend = CSettings::Get().GetBool("pvrpowermanagement.cancelsuspend");
+    if (!cancelSuspend) return false;
+
+    bool suspendCanceled = false;
+
+
+    FILE *fp = fopen("/tmp/.do_not_suspend", "r");
+    if(fp)
+    {
+      fclose(fp);
+      suspendCanceled = true;
+    }
+
+    return suspendCanceled;
 }
 
 void CPVRManager::ShowPlayerInfo(int iTimeout)

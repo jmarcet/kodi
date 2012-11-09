@@ -8506,6 +8506,14 @@ msgstr ""
 
 #empty strings from id 19286 to 19498
 
+msgctxt "#19300"
+msgid "Inhibit if user logged in"
+msgstr ""
+
+msgctxt "#19301"
+msgid "Obey /tmp/.do_not_suspend"
+msgstr ""
+
 #: xbmc/epg/Epg.cpp
 msgctxt "#19499"
 msgid "Other/Unknown"
