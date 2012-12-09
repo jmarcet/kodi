@@ -233,7 +233,7 @@
       <right>StepForward</right>
       <up>BigStepForward</up>
       <down>BigStepBack</down>
-      <a>AudioDelay</a>
+      <a>AudioNextLanguage</a>
       <escape>Fullscreen</escape>
       <c>Playlist</c>
       <v>XBMC.ActivateWindow(Teletext)</v>
@@ -388,7 +388,7 @@
       <z>AspectRatio</z>
       <t>ShowSubtitles</t>
       <l>NextSubtitle</l>
-      <a>AudioDelay</a>
+      <a>AudioNextLanguage</a>
       <escape>Fullscreen</escape>
       <return>Select</return>
       <enter>Select</enter>      <!-- backspace>Fullscreen</backspace -->
