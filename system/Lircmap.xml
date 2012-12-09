@@ -410,40 +410,21 @@
 	<remote device="linux-input-layer">
 	<altname>cx23885_remote</altname>
 	<altname>devinput</altname>
+		<enter>KEY_ENTER</enter>
 		<left>KEY_LEFT</left>
 		<right>KEY_RIGHT</right>
 		<up>KEY_UP</up>
 		<down>KEY_DOWN</down>
-		<select>KEY_OK</select>
-		<select>KEY_ENTER</select>
-		<start>KEY_SELECT</start>
-		<back>KEY_ESC</back>
-		<back>KEY_EXIT</back>
+		<info>KEY_I</info>
 		<back>KEY_BACK</back>
-		<back>KEY_CLOSE</back>
-		<record>KEY_RECORD</record>
-		<play>KEY_PLAY</play>
-		<play>KEY_PLAYPAUSE</play>
-		<pause>KEY_PAUSE</pause>
-		<stop>KEY_STOP</stop>
-		<stop>KEY_STOPCD</stop>
-		<forward>KEY_FASTFORWARD</forward>
-		<reverse>KEY_REWIND</reverse>
-		<volumeplus>KEY_VOLUMEUP</volumeplus>
-		<volumeminus>KEY_VOLUMEDOWN</volumeminus>
-		<channelplus>KEY_CHANNELUP</channelplus>
-		<channelminus>KEY_CHANNELDOWN</channelminus>
-		<skipplus>KEY_NEXTSONG</skipplus>
-		<skipminus>KEY_PREVIOUSSONG</skipminus>
-		<title>KEY_TITLE</title>
-		<subtitle>KEY_SUBTITLE</subtitle>
-		<language>KEY_LANGUAGE</language>
-		<mute>KEY_MUTE</mute>
-		<power>KEY_POWER</power>
-		<myvideo>KEY_VIDEO</myvideo>
-		<mymusic>KEY_AUDIO</mymusic>
-		<mypictures>KEY_MHP</mypictures>
-		<mytv>KEY_TV</mytv>
+		<clear>KEY_DELETE</clear>
+		<play>KEY_P</play>
+		<stop>KEY_X</stop>
+		<forward>KEY_F</forward>
+		<reverse>KEY_R</reverse>
+		<skipplus>KEY_DOT</skipplus>
+		<skipminus>KEY_COMMA</skipminus>
+		<pause>KEY_SPACE</pause>
 		<one>KEY_1</one>
 		<two>KEY_2</two>
 		<three>KEY_3</three>
@@ -454,17 +435,25 @@
 		<eight>KEY_8</eight>
 		<nine>KEY_9</nine>
 		<zero>KEY_0</zero>
-		<red>KEY_RED</red>
-		<green>KEY_GREEN</green>
-		<yellow>KEY_YELLOW</yellow>
-		<blue>KEY_BLUE</blue>
+		<star>KEY_L</star>
+		<hash>KEY_A</hash>
+		<power>KEY_S</power>
+		<mytv>KEY_TAB</mytv>
+		<title>KEY_O</title>
+		<playlist>KEY_Z</playlist>
+		<mute>KEY_F8</mute>
+		<volumeminus>KEY_F9</volumeminus>
+		<volumeplus>KEY_F10</volumeplus>
+		<guide>KEY_M</guide>
+		<pageplus>KEY_PAGEUP</pageplus>
+		<pageminus>KEY_PAGEDOWN</pageminus>
 		<menu>KEY_MENU</menu>
-		<info>KEY_INFO</info>
-		<info>KEY_PROPS</info>
-		<start>KEY_HOME</start>
-		<display>KEY_ANGLE</display>
-		<recordedtv>KEY_PVR</recordedtv>
-		<teletext>KEY_TEXT</teletext>
+		<xbox>KEY_ESC</xbox>
+		<title>KEY_C</title>
+		<record>KEY_D</record>
+		<teletext>KEY_U</teletext>
+		<select>KEY_N</select>
+		<start>KEY_G</start>
 	</remote>
 	<remote device="mediacenter">
 		<pause>pause</pause>
