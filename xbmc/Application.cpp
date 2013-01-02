@@ -2415,6 +2415,15 @@ bool CApplication::OnKey(const CKey& key)
   m_idleTimer.StartZero();
   bool processKey = AlwaysProcess(action);
 
+  if (action.GetID() == ACTION_TOGGLE_CECDEVICE)
+  {
+    CLog::Log(LOGDEBUG, "%s: action %s [%d], calling ToggleDevice()", __FUNCTION__, action.GetName().c_str(), action.GetID());
+    // do not wake up the screensaver right after switching off the
+    // playing device
+    if (!g_peripherals.ToggleDevice())
+      return true;
+  }
+
   ResetScreenSaver();
 
   // allow some keys to be processed while the screensaver is active

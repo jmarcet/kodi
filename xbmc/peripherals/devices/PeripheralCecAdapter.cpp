@@ -133,6 +133,7 @@ void CPeripheralCecAdapter::ResetMembers(void)
   m_bActiveSourceBeforeStandby = false;
   m_bOnPlayReceived          = false;
   m_bPlaybackPaused          = false;
+  m_bCECIsActive             = true;
 
   m_currentButton.iButton    = 0;
   m_currentButton.iDuration  = 0;
@@ -1733,7 +1734,10 @@ void CPeripheralCecAdapter::ProcessActivateSource(void)
   }
 
   if (bActivate)
+  {
     m_cecAdapter->SetActiveSource();
+    m_bCECIsActive = true;
+  }
 }
 
 void CPeripheralCecAdapter::StandbyDevices(void)
@@ -1753,7 +1757,27 @@ void CPeripheralCecAdapter::ProcessStandbyDevices(void)
   }
 
   if (bStandby)
+  {
     m_cecAdapter->StandbyDevices(CECDEVICE_BROADCAST);
+    m_bCECIsActive = false;
+  }
+}
+
+bool CPeripheralCecAdapter::ToggleDevice(void)
+{
+  if (m_bCECIsActive)
+  {
+    CLog::Log(LOGDEBUG, "%s - CEC device is active, putting on standby...", __FUNCTION__);
+    m_screensaverLastActivated = CDateTime::GetCurrentDateTime();
+    StandbyDevices();
+    return false;
+  }
+  else
+  {
+    CLog::Log(LOGDEBUG, "%s - CEC device is in standby, waking up...", __FUNCTION__);
+    ActivateSource();
+    return true;
+  }
 }
 
 #endif
