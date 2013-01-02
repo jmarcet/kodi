@@ -99,6 +99,7 @@ namespace PERIPHERALS
     void ScheduleMute(void);
     void Mute(void);
     bool IsMuted(void);
+    bool IsRunning(void) const;
 
     void OnSettingChanged(const CStdString &strChangedSetting);
     void OnDeviceRemoved(void);
@@ -112,6 +113,7 @@ namespace PERIPHERALS
 
     void ActivateSource(void);
     void StandbyDevices(void);
+    bool ToggleDevice(void);
 
   protected:
     bool OpenConnection(void);
@@ -128,7 +130,6 @@ namespace PERIPHERALS
     static int CecConfiguration(void *cbParam, const CEC::libcec_configuration config);
     static int CecAlert(void *cbParam, const CEC::libcec_alert alert, const CEC::libcec_parameter data);
     static void CecSourceActivated(void *param, const CEC::cec_logical_address address, const uint8_t activated);
-    bool IsRunning(void) const;
     bool ReopenConnection(void);
     void ProcessActivateSource(void);
     void ProcessStandbyDevices(void);
@@ -171,6 +172,7 @@ namespace PERIPHERALS
     bool                              m_bActiveSourceBeforeStandby;
     bool                              m_bOnPlayReceived;
     bool                              m_bPlaybackPaused;
+    bool                              m_bCECIsActive;
   };
 
   class CPeripheralCecAdapterUpdateThread : public CThread
