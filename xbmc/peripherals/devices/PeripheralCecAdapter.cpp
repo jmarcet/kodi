@@ -58,6 +58,8 @@ using namespace std;
 
 /* time in seconds to suppress source activation after receiving OnStop */
 #define CEC_SUPPRESS_ACTIVATE_SOURCE_AFTER_ON_STOP 2
+/* time in seconds to force a reconnection after a StandBy */
+#define CEC_FORCE_RECONNECT_AFTER_ON_SCREENSAVER_ACTIVATED 30
 
 class DllLibCECInterface
 {
@@ -1677,8 +1679,16 @@ bool CPeripheralCecAdapter::ReopenConnection(void)
 
 void CPeripheralCecAdapter::ActivateSource(void)
 {
-  CSingleLock lock(m_critSection);
-  m_bActiveSourcePending = true;
+  if (m_screensaverLastActivated > 0 && (CDateTime::GetCurrentDateTime() - m_screensaverLastActivated) <
+          CDateTimeSpan(0, 0, 0, CEC_FORCE_RECONNECT_AFTER_ON_SCREENSAVER_ACTIVATED))
+  {
+    CLog::Log(LOGDEBUG, "%s - Panasonic bug hit, resetting cec connection...", __FUNCTION__);
+    ReopenConnection();
+  }
+  {
+    CSingleLock lock(m_critSection);
+    m_bActiveSourcePending = true;
+  }
 }
 
 void CPeripheralCecAdapter::ProcessActivateSource(void)
