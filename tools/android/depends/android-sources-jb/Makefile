@@ -8,7 +8,10 @@ ANDROID_LIBS=android-libs
 
 all: .installed-$(PLATFORM)
 
-.installed-$(PLATFORM): $(ANDROID_SOURCE) $(ANDROID_LIBS)
+.installed-$(PLATFORM): install-sources $(ANDROID_LIBS)
+	rm -rf $(PREFIX)/opt/$(ANDROID_LIBS)
+	mkdir -p $(PREFIX)/opt/$(ANDROID_LIBS)
+	cp $(PLATFORM)/libstagefright.so $(PLATFORM)/libutils.so $(PLATFORM)/libbinder.so  $(PLATFORM)/libcutils.so $(PLATFORM)/libui.so $(PLATFORM)/libgui.so $(PREFIX)/opt/$(ANDROID_LIBS)
 	touch $@
 
 $(ANDROID_SOURCE):
@@ -17,13 +20,13 @@ $(ANDROID_SOURCE):
 	git clone --depth=1 --branch $(ANDROID_VERSION)-release https://android.googlesource.com/platform/frameworks/av $(ANDROID_SOURCE)/frameworks/av
 	git clone --depth=1 --branch $(ANDROID_VERSION)-release https://android.googlesource.com/platform/system/core $(ANDROID_SOURCE)/system/core
 	git clone --depth=1 --branch $(ANDROID_VERSION)-release https://android.googlesource.com/platform/hardware/libhardware $(ANDROID_SOURCE)/libhardware
+
+install-sources: $(ANDROID_SOURCE)
 	mkdir -p $(PREFIX)/opt
 	rm -f $(PREFIX)/opt/$(ANDROID_SOURCE)
 	ln -s $(CURDIR)/$(ANDROID_SOURCE) $(PREFIX)/opt/$(ANDROID_SOURCE)
 
-$(ANDROID_LIBS): $(PLATFORM)/libstagefright.so $(PLATFORM)/libutils.so $(PLATFORM)/libbinder.so $(PLATFORM)/libcutils.so $(PLATFORM)/libui.so $(PLATFORM)/libgui.so
-	mkdir -p $(PREFIX)/opt/$(ANDROID_LIBS)
-	cp $(PLATFORM)/libstagefright.so $(PLATFORM)/libutils.so $(PLATFORM)/libbinder.so  $(PLATFORM)/libcutils.so $(PLATFORM)/libui.so $(PLATFORM)/libgui.so $(PREFIX)/opt/$(ANDROID_LIBS)
+$(ANDROID_LIBS): install-sources $(PLATFORM)/libstagefright.so $(PLATFORM)/libutils.so $(PLATFORM)/libbinder.so $(PLATFORM)/libcutils.so $(PLATFORM)/libui.so $(PLATFORM)/libgui.so
 
 $(PLATFORM):
 	mkdir -p $(PLATFORM)

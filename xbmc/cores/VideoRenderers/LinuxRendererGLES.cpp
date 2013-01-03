@@ -1319,14 +1319,17 @@ void CLinuxRendererGLES::RenderOpenMax(int index, int field)
 void CLinuxRendererGLES::RenderTexture(int index, int field)
 {
 #if defined(HAVE_LIBSTAGEFRIGHT)
+  int glerr;
+
+  /*
   g_xbmcapp.GetAndroidSurfaceTexture()->updateTexImage();
+  */
 
   android::sp<android::GraphicBuffer> activeBuffer = g_xbmcapp.GetAndroidSurfaceTexture()->getCurrentBuffer();
 
   if(!activeBuffer.get())
     return;
 
-  int glerr;
     
   EGLint eglImgAttrs[] = { EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_NONE, EGL_NONE };
   EGLImageKHR  eglimg = eglCreateImageKHR(eglGetDisplay(EGL_DEFAULT_DISPLAY), EGL_NO_CONTEXT,
@@ -1335,7 +1338,7 @@ void CLinuxRendererGLES::RenderTexture(int index, int field)
                                   eglImgAttrs);
   if ((glerr = glGetError()) != 0)
     CLog::Log(LOGERROR, ">>> eglCreateImageKHR error(%d)\n", glerr);
-
+  
   GLuint textureId;
   glActiveTexture(GL_TEXTURE0);
   glGenTextures(1, &textureId);

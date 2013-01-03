@@ -986,12 +986,6 @@ bool CXBMCApp::InitStagefright()
   if (m_VideoNativeWindow != NULL)
     return true;
     
-  if (m_activity == NULL)
-    return false;
-
-  JNIEnv *env = NULL;
-  AttachCurrentThread(&env);
-
   glEnable(GL_TEXTURE_EXTERNAL_OES);
   glGenTextures(1, &m_VideoTextureId);
   glBindTexture(GL_TEXTURE_EXTERNAL_OES, m_VideoTextureId);
@@ -1004,7 +998,9 @@ bool CXBMCApp::InitStagefright()
   if (!m_SurfTexture.get())
   {
     CLog::Log(LOGERROR, "%s\n", "Cannot instantiate surface texture");
-  }  
+  }
+  m_SurfTexture->setSynchronousMode(true);
+  
   m_Surface = new android::SurfaceTextureClient(m_SurfTexture);
   if (!m_Surface.get())
   {
@@ -1014,19 +1010,11 @@ bool CXBMCApp::InitStagefright()
 
   glDisable(GL_TEXTURE_EXTERNAL_OES);
  
-  DetachCurrentThread();
- 
   return true;
 }
 
 void CXBMCApp::UninitStagefright()
 {
-  if (m_activity == NULL)
-    return;
-
-  JNIEnv *env = NULL;
-  AttachCurrentThread(&env);
-
   m_VideoNativeWindow.clear();
   m_Surface.clear();
   m_SurfTexture.clear();
@@ -1036,6 +1024,5 @@ void CXBMCApp::UninitStagefright()
   m_Surface = NULL;
   m_SurfTexture = NULL;
 
-  DetachCurrentThread();
 }
 #endif
