@@ -28,6 +28,7 @@
 #include <string.h>
 
 #include <android/native_window.h>
+#include <android/native_window_jni.h>
 #include <android/configuration.h>
 #include <jni.h>
 
@@ -986,6 +987,9 @@ bool CXBMCApp::InitStagefright()
   if (m_VideoNativeWindow != NULL)
     return true;
     
+  JNIEnv *env = NULL;
+  AttachCurrentThread(&env);
+
   glEnable(GL_TEXTURE_EXTERNAL_OES);
   glGenTextures(1, &m_VideoTextureId);
   glBindTexture(GL_TEXTURE_EXTERNAL_OES, m_VideoTextureId);
@@ -994,35 +998,59 @@ bool CXBMCApp::InitStagefright()
 
   CLog::Log(LOGDEBUG, ">>> texid: %d\n", m_VideoTextureId);
 
-  m_SurfTexture = new android::SurfaceTexture(m_VideoTextureId);
-  if (!m_SurfTexture.get())
-  {
-    CLog::Log(LOGERROR, "%s\n", "Cannot instantiate surface texture");
-  }
-  m_SurfTexture->setSynchronousMode(true);
+  jclass cSurfaceTexture = env->FindClass("android/graphics/SurfaceTexture");
+  jmethodID midSurfaceTextureCtor = env->GetMethodID(cSurfaceTexture, "<init>", "(I)V");
+  m_midUpdateTexImage = env->GetMethodID(cSurfaceTexture, "updateTexImage", "()V");
+  jobject oSurfTexture = env->NewObject(cSurfaceTexture, midSurfaceTextureCtor, m_VideoTextureId);
+  env->DeleteLocalRef(cSurfaceTexture);
+  m_SurfTexture = env->NewGlobalRef(oSurfTexture);
+  env->DeleteLocalRef(oSurfTexture);
   
-  m_Surface = new android::SurfaceTextureClient(m_SurfTexture);
-  if (!m_Surface.get())
-  {
-    CLog::Log(LOGERROR, "%s\n", "Cannot instantiate surface texture client");
-  }
-  m_VideoNativeWindow = m_Surface;
+  jclass cSurface = env->FindClass("android/view/Surface");
+  jmethodID midSurfaceCtor = env->GetMethodID(cSurface, "<init>", "(Landroid/graphics/SurfaceTexture;)V");
+  jmethodID midSurfaceRelease = env->GetMethodID(cSurface, "release", "()V");
+  jobject oSurface = env->NewObject(cSurface, midSurfaceCtor, m_SurfTexture);
+  env->DeleteLocalRef(cSurface);
+
+  m_VideoNativeWindow = ANativeWindow_fromSurface(env, oSurface);
+
+  env->CallVoidMethod(oSurface, midSurfaceRelease);
+  env->DeleteLocalRef(oSurface);
 
   glDisable(GL_TEXTURE_EXTERNAL_OES);
- 
+
+  DetachCurrentThread();
+  
   return true;
 }
 
 void CXBMCApp::UninitStagefright()
 {
+  JNIEnv *env = NULL;
+  AttachCurrentThread(&env);
+
+  ANativeWindow_release(m_VideoNativeWindow.get());
   m_VideoNativeWindow.clear();
-  m_Surface.clear();
-  m_SurfTexture.clear();
+  m_VideoNativeWindow = NULL;
   glDeleteTextures(1, &m_VideoTextureId);
   
-  m_VideoNativeWindow = NULL;
-  m_Surface = NULL;
-  m_SurfTexture = NULL;
+  jclass cSurfaceTexture = env->GetObjectClass(m_SurfTexture);
+  jmethodID midSurfaceTextureRelease = env->GetMethodID(cSurfaceTexture, "release", "()V");
+  env->CallVoidMethod(m_SurfTexture, midSurfaceTextureRelease);
+  env->DeleteLocalRef(cSurfaceTexture);
+  env->DeleteGlobalRef(m_SurfTexture);
 
+  DetachCurrentThread();
+
+}
+
+void CXBMCApp::UpdateStagefrightTexture()
+{
+  JNIEnv *env = NULL;
+  AttachCurrentThread(&env);
+
+  env->CallVoidMethod(m_SurfTexture, m_midUpdateTexImage);
+
+  DetachCurrentThread();
 }
 #endif

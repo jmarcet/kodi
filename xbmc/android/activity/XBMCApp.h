@@ -106,8 +106,10 @@ public:
 #ifdef HAVE_LIBSTAGEFRIGHT
   bool InitStagefright();
   void UninitStagefright();
+  void UpdateStagefrightTexture();
 
-  const android::sp<android::SurfaceTexture>& GetAndroidSurfaceTexture() const { return m_SurfTexture;}
+  //const android::sp<android::SurfaceTexture>& GetAndroidSurfaceTexture() const { return m_SurfTexture;}
+  const GLuint GetAndroidTexture() const { return m_VideoTextureId; }
   const android::sp<ANativeWindow>& GetAndroidVideoWindow() const { return m_VideoNativeWindow;}
 #endif
 
@@ -165,8 +167,8 @@ private:
   static ANativeWindow* m_window;
 #ifdef HAVE_LIBSTAGEFRIGHT
   GLuint m_VideoTextureId;
-  android::sp<android::SurfaceTexture> m_SurfTexture;
-  android::sp<android::SurfaceTextureClient> m_Surface;
+  jobject m_SurfTexture;
+  jmethodID m_midUpdateTexImage;
   android::sp<ANativeWindow> m_VideoNativeWindow;
 #endif
   

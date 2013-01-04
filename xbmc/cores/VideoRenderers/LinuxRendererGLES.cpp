@@ -871,7 +871,7 @@ void CLinuxRendererGLES::Render(DWORD flags, int index)
   }
   else if (m_renderMethod & RENDER_TEXTURE)
   {
-    RenderTexture(index, m_currentField);
+    RenderAndroid(index, m_currentField);
     VerifyGLState();
   }
   else if (m_renderMethod & RENDER_CVREF)
@@ -1244,9 +1244,11 @@ void CLinuxRendererGLES::RenderSoftware(int index, int field)
   VerifyGLState();
 }
 
-void CLinuxRendererGLES::RenderTexture(GLuint textureId)
+void CLinuxRendererGLES::RenderOpenMax(int index, int field)
 {
-#if defined(HAVE_LIBOPENMAX) || defined(HAVE_LIBSTAGEFRIGHT)
+#if defined(HAVE_LIBOPENMAX)
+  GLuint textureId = m_buffers[index].openMaxBuffer->texture_id;
+
   glDisable(GL_DEPTH_TEST);
 
   // Y
@@ -1308,55 +1310,71 @@ void CLinuxRendererGLES::RenderTexture(GLuint textureId)
 #endif
 }
 
-void CLinuxRendererGLES::RenderOpenMax(int index, int field)
-{
-#if defined(HAVE_LIBOPENMAX)
-  GLuint textureId = m_buffers[index].openMaxBuffer->texture_id;
-  RenderTexture(textureId);
-#endif
-}
-
-void CLinuxRendererGLES::RenderTexture(int index, int field)
+void CLinuxRendererGLES::RenderAndroid(int index, int field)
 {
 #if defined(HAVE_LIBSTAGEFRIGHT)
   int glerr;
 
-  /*
-  g_xbmcapp.GetAndroidSurfaceTexture()->updateTexImage();
-  */
-
-  android::sp<android::GraphicBuffer> activeBuffer = g_xbmcapp.GetAndroidSurfaceTexture()->getCurrentBuffer();
-
-  if(!activeBuffer.get())
-    return;
-
+  g_xbmcapp.UpdateStagefrightTexture();
     
-  EGLint eglImgAttrs[] = { EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_NONE, EGL_NONE };
-  EGLImageKHR  eglimg = eglCreateImageKHR(eglGetDisplay(EGL_DEFAULT_DISPLAY), EGL_NO_CONTEXT,
-                                  EGL_NATIVE_BUFFER_ANDROID,
-                                  (EGLClientBuffer)activeBuffer.get()->getNativeBuffer(),
-                                  eglImgAttrs);
-  if ((glerr = glGetError()) != 0)
-    CLog::Log(LOGERROR, ">>> eglCreateImageKHR error(%d)\n", glerr);
-  
-  GLuint textureId;
+  glDisable(GL_DEPTH_TEST);
+
+  // Y
+  glEnable(GL_TEXTURE_EXTERNAL_OES);
   glActiveTexture(GL_TEXTURE0);
-  glGenTextures(1, &textureId);
-  glBindTexture(GL_TEXTURE_2D, textureId);
-  glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, eglimg);
-  if ((glerr = glGetError()) != 0)
-    CLog::Log(LOGERROR, ">>> glEGLImageTargetTexture2DOES error(%d)\n", glerr);
-   
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glBindTexture(GL_TEXTURE_EXTERNAL_OES, g_xbmcapp.GetAndroidTexture());
 
-  eglDestroyImageKHR(eglGetDisplay(EGL_DEFAULT_DISPLAY), eglimg);
-  if ((glerr = glGetError()) != 0)
-    CLog::Log(LOGERROR, ">>> eglDestroyImageKHR error(%d)\n", glerr);
+  g_Windowing.EnableGUIShader(SM_TEXTURE_RGBA);
 
-  RenderTexture(textureId);
+  GLubyte idx[4] = {0, 1, 3, 2};        //determines order of triangle strip
+  GLfloat ver[4][4];
+  GLfloat tex[4][2];
+  float col[4][3];
 
-  glDeleteTextures(1, &textureId);
+  for (int index = 0;index < 4;++index)
+  {
+    col[index][0] = col[index][1] = col[index][2] = 1.0;
+  }
+
+  GLint   posLoc = g_Windowing.GUIShaderGetPos();
+  GLint   texLoc = g_Windowing.GUIShaderGetCoord0();
+  GLint   colLoc = g_Windowing.GUIShaderGetCol();
+
+  glVertexAttribPointer(posLoc, 4, GL_FLOAT, 0, 0, ver);
+  glVertexAttribPointer(texLoc, 2, GL_FLOAT, 0, 0, tex);
+  glVertexAttribPointer(colLoc, 3, GL_FLOAT, 0, 0, col);
+
+  glEnableVertexAttribArray(posLoc);
+  glEnableVertexAttribArray(texLoc);
+  glEnableVertexAttribArray(colLoc);
+
+  // Set vertex coordinates
+  for(int i = 0; i < 4; i++)
+  {
+    ver[i][0] = m_rotatedDestCoords[i].x;
+    ver[i][1] = m_rotatedDestCoords[i].y;
+    ver[i][2] = 0.0f;// set z to 0
+    ver[i][3] = 1.0f;
+  }
+
+  // Set texture coordinates
+  tex[0][0] = tex[3][0] = 0;
+  tex[0][1] = tex[1][1] = 0;
+  tex[1][0] = tex[2][0] = 1;
+  tex[2][1] = tex[3][1] = 1;
+
+  glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_BYTE, idx);
+
+  glDisableVertexAttribArray(posLoc);
+  glDisableVertexAttribArray(texLoc);
+  glDisableVertexAttribArray(colLoc);
+
+  g_Windowing.DisableGUIShader();
+
+  VerifyGLState();
+
+  glDisable(GL_TEXTURE_EXTERNAL_OES);
+  VerifyGLState();
 
 #endif
 }

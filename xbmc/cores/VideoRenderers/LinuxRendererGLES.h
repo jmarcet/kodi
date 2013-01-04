@@ -197,9 +197,8 @@ protected:
   void RenderSinglePass(int index, int field);    // single pass glsl renderer
   void RenderSoftware(int index, int field);      // single pass s/w yuv2rgb renderer
   void RenderOpenMax(int index, int field);       // OpenMAX rgb texture
-  void RenderTexture(int index, int field);       // rgb texture
+  void RenderAndroid(int index, int field);       // Android OES texture
   void RenderCoreVideoRef(int index, int field);  // CoreVideo reference
-  void RenderTexture(GLuint textureId);           // rgb texture
 
   CFrameBufferObject m_fbo;
 
