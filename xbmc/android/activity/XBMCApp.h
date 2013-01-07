@@ -107,6 +107,7 @@ public:
   bool InitStagefright();
   void UninitStagefright();
   void UpdateStagefrightTexture();
+  void GetStagefrightTransformMatrix(float*);
 
   //const android::sp<android::SurfaceTexture>& GetAndroidSurfaceTexture() const { return m_SurfTexture;}
   const GLuint GetAndroidTexture() const { return m_VideoTextureId; }
@@ -169,6 +170,7 @@ private:
   GLuint m_VideoTextureId;
   jobject m_SurfTexture;
   jmethodID m_midUpdateTexImage;
+  jmethodID m_midGetTransformMatrix;
   android::sp<ANativeWindow> m_VideoNativeWindow;
 #endif
   

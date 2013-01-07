@@ -87,7 +87,7 @@ enum RenderMethod
   RENDER_OMXEGL = 0x040,
   RENDER_CVREF  = 0x080,
   RENDER_BYPASS = 0x100,
-  RENDER_TEXTURE = 0x101
+  RENDER_TEXTURE = 0x200
 };
 
 enum RenderQuality
@@ -221,6 +221,18 @@ protected:
   // Raw data used by renderer
   int m_currentField;
   int m_reloadShaders;
+  
+#ifdef HAVE_LIBSTAGEFRIGHT
+    GLuint mPgm;
+    GLint mPositionHandle;
+    GLint mTexSamplerHandle;
+    GLint mTexMatrixHandle;
+    
+    void loadShader(GLenum shaderType, const char* pSource, GLuint* outShader);
+    void createProgram(const char* pVertexSource, const char* pFragmentSource, GLuint* outPgm);
+    void OES_shader_setUp();
+#endif
+
 
   struct YUVPLANE
   {

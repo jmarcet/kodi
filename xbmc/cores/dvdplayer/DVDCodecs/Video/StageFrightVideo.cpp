@@ -548,12 +548,14 @@ bool CStageFrightVideo::GetPicture(DVDVideoPicture* pDvdVideoPicture)
   pDvdVideoPicture->iDisplayHeight = frame->height;
   pDvdVideoPicture->iFlags  = DVP_FLAG_ALLOCATED;
   pDvdVideoPicture->pts = pts_itod(frame->pts);
+  pDvdVideoPicture->texture_id = -1;
   
   if (frame->medbuf)
   {
     if (frame->medbuf->graphicBuffer() != 0)
     {
       pDvdVideoPicture->format = RENDER_FMT_TEXTURE;
+      pDvdVideoPicture->texture_id = 0;
 
       android::GraphicBuffer* graphicBuffer = static_cast<android::GraphicBuffer*>(frame->medbuf->graphicBuffer().get() );
       ANativeWindow* nativeWindow = static_cast<ANativeWindow*>(g_xbmcapp.GetAndroidVideoWindow().get());
