@@ -291,12 +291,13 @@ CLinuxRendererGLES::CLinuxRendererGLES()
 
 CLinuxRendererGLES::~CLinuxRendererGLES()
 {
-#ifdef HAVE_LIBSTAGEFRIGHT
-  g_xbmcapp.UninitStagefright();
-#endif
   UnInit();
   for (int i = 0; i < NUM_BUFFERS; i++)
     delete m_eventTexturesDone[i];
+
+#ifdef HAVE_LIBSTAGEFRIGHT
+  g_xbmcapp.UninitStagefright();
+#endif
 
   if (m_rgbBuffer != NULL) {
     delete [] m_rgbBuffer;
@@ -927,7 +928,18 @@ void CLinuxRendererGLES::UnInit()
 
   // YV12 textures
   for (int i = 0; i < NUM_BUFFERS; ++i)
+  {
+#ifdef HAVE_LIBSTAGEFRIGHT
+    YUVBUFFER &buf = m_buffers[i];
+    if (buf.medbuf)
+    {
+      if (buf.medbuf->refcount() > 1)
+        buf.medbuf->release();
+      CStageFrightVideo::ReleaseOutputBuffer(buf.medbuf);
+    }
+#endif
     (this->*m_textureDelete)(i);
+  }
 
   if (m_dllSwScale && m_sw_context)
   {
@@ -1455,7 +1467,10 @@ void CLinuxRendererGLES::RenderAndroid(int index, int field)
   unsigned int time = XbmcThreads::SystemClockMillis();
   CLog::Log(LOGDEBUG, "RenderAndroid\n");
 
-  g_xbmcapp.UpdateStagefrightTexture();
+  glEnable(GL_TEXTURE_EXTERNAL_OES);
+
+  
+  //g_xbmcapp.UpdateStagefrightTexture();
    
   android::MediaBuffer* mb = m_buffers[index].medbuf;
   android::GraphicBuffer* gb = static_cast<android::GraphicBuffer*>(mb->graphicBuffer().get() );
@@ -1474,6 +1489,12 @@ void CLinuxRendererGLES::RenderAndroid(int index, int field)
     CLog::Log(LOGERROR, ">>> clear glerror: %#x", glerr);
   }
 
+  GLuint textureId;
+  glGenTextures(1, &textureId);
+  glBindTexture(GL_TEXTURE_EXTERNAL_OES, textureId);
+  glEGLImageTargetTexture2DOES(GL_TEXTURE_EXTERNAL_OES, (GLeglImageOES)eglimg);
+  ASSERT_EQ(GLenum(GL_NO_ERROR), glGetError());
+  
   const GLfloat triangleVertices[] = {
     -1.0f, 1.0f,
     -1.0f, -1.0f,
@@ -1483,9 +1504,6 @@ void CLinuxRendererGLES::RenderAndroid(int index, int field)
 
   glVertexAttribPointer(mPositionHandle, 2, GL_FLOAT, GL_FALSE, 0,
           triangleVertices);
-  while ((glerr = glGetError()) != GL_NO_ERROR) {
-    CLog::Log(LOGERROR, ">>> glVertexAttribPointer glerror: %#x", glerr);
-  }
   ASSERT_EQ(GLenum(GL_NO_ERROR), glGetError());
   glEnableVertexAttribArray(mPositionHandle);
   ASSERT_EQ(GLenum(GL_NO_ERROR), glGetError());
@@ -1493,14 +1511,6 @@ void CLinuxRendererGLES::RenderAndroid(int index, int field)
   glUseProgram(mPgm);
   glUniform1i(mTexSamplerHandle, 0);
   ASSERT_EQ(GLenum(GL_NO_ERROR), glGetError());
-
-  GLuint textureId;
-  glGenTextures(1, &textureId);
-  glBindTexture(GL_TEXTURE_EXTERNAL_OES, textureId);
-  glEGLImageTargetTexture2DOES(GL_TEXTURE_EXTERNAL_OES, (GLeglImageOES)eglimg);
-  while ((glerr = glGetError()) != GL_NO_ERROR) {
-    CLog::Log(LOGERROR, ">>> glEGLImageTargetTexture2DOES error(%d)\n", glerr);
-  }
 
   //glBindTexture(GL_TEXTURE_EXTERNAL_OES, g_xbmcapp.GetAndroidTexture());
   //ASSERT_EQ(GLenum(GL_NO_ERROR), glGetError());
@@ -1528,69 +1538,18 @@ void CLinuxRendererGLES::RenderAndroid(int index, int field)
     0, 1, 0, 1,
   };
   glUniformMatrix4fv(mTexMatrixHandle, 1, GL_FALSE, texMatrix);
-
+ 
   glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
   ASSERT_EQ(GLenum(GL_NO_ERROR), glGetError());
 
+  glDeleteTextures(1, &textureId);
   eglDestroyImageKHR(eglGetDisplay(EGL_DEFAULT_DISPLAY), eglimg);
-  while ((glerr = glGetError()) != GL_NO_ERROR) {
-    CLog::Log(LOGERROR, ">>> error destroying EGLImage: %#x", glerr);
-  }
-
-  mb->release();
-  CStageFrightVideo::ReleaseOutputBuffer(mb);
-  m_buffers[index].medbuf = NULL;
+  ASSERT_EQ(GLenum(GL_NO_ERROR), glGetError());
   
   glDisable(GL_TEXTURE_EXTERNAL_OES);
   VerifyGLState();
 
   CLog::Log(LOGDEBUG, ">>> tm:%d\n", XbmcThreads::SystemClockMillis() - time);
-
-        /*
-  g_Windowing.EnableGUIShader(SM_TEXTURE_RGBA);
-
-  GLubyte idx[4] = {0, 1, 3, 2};        //determines order of triangle strip
-  GLfloat* ver;
-  GLfloat tex[4][2];
-  float col[4][3];
-
-  for (int index = 0;index < 4;++index)
-  {
-    col[index][0] = col[index][1] = col[index][2] = 1.0;
-  }
-
-  GLint   posLoc = g_Windowing.GUIShaderGetPos();
-  GLint   texLoc = g_Windowing.GUIShaderGetCoord0();
-  GLint   colLoc = g_Windowing.GUIShaderGetCol();
-
-  glVertexAttribPointer(posLoc, 4, GL_FLOAT, 0, 0, ver);
-  glVertexAttribPointer(texLoc, 2, GL_FLOAT, 0, 0, tex);
-  glVertexAttribPointer(colLoc, 3, GL_FLOAT, 0, 0, col);
-
-  glEnableVertexAttribArray(posLoc);
-  glEnableVertexAttribArray(texLoc);
-  glEnableVertexAttribArray(colLoc);
-
-  // Set vertex coordinates
-  ver = g_xbmcapp.GetStagefrightTransformMatrix();
-
-  // Set texture coordinates
-  tex[0][0] = tex[3][0] = 0;
-  tex[0][1] = tex[1][1] = 0;
-  tex[1][0] = tex[2][0] = 1;
-  tex[2][1] = tex[3][1] = 1;
-
-  glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
-
-  glDisableVertexAttribArray(posLoc);
-  glDisableVertexAttribArray(texLoc);
-  glDisableVertexAttribArray(colLoc);
-
-  g_Windowing.DisableGUIShader();
-
-  VerifyGLState();
-*/
-
 #endif
 }
 
@@ -2357,7 +2316,8 @@ void CLinuxRendererGLES::AddProcessor(android::MediaBuffer* medbuf)
   YUVBUFFER &buf = m_buffers[NextYV12Texture()];
   if (buf.medbuf)
   {
-    buf.medbuf->release();
+    if (buf.medbuf->refcount() > 1)
+      buf.medbuf->release();
     CStageFrightVideo::ReleaseOutputBuffer(buf.medbuf);
   }
   buf.medbuf = medbuf;

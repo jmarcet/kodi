@@ -690,6 +690,7 @@ void CStageFrightVideo::ReleaseOutputBuffer(MediaBuffer* medbuf)
 #if defined(STAGEFRIGHT_DEBUG_VERBOSE)
   CLog::Log(LOGDEBUG, "%s::ReleaseOutputBuffer(%d)\n", CLASSNAME, medbuf->refcount());
 #endif
+/*
   if (medbuf->refcount() <= 2)
   {
     android::GraphicBuffer* graphicBuffer = static_cast<android::GraphicBuffer*>(medbuf->graphicBuffer().get() );
@@ -697,6 +698,7 @@ void CStageFrightVideo::ReleaseOutputBuffer(MediaBuffer* medbuf)
     int err = nativeWindow->queueBuffer(nativeWindow, graphicBuffer);   
     if (err == 0)
       medbuf->meta_data()->setInt32(kKeyRendered, 1);
-    medbuf->release();
   }
+  */
+  medbuf->release();
 }
