@@ -61,6 +61,8 @@
 #endif
 #if defined(HAVE_LIBSTAGEFRIGHT)
 #include "android/activity/XBMCApp.h"
+#include "DVDCodecs/Video/StageFrightVideo.h"
+#include <media/stagefright/MediaBufferGroup.h>
 
 // EGL extension functions
 static PFNEGLCREATEIMAGEKHRPROC eglCreateImageKHR;
@@ -239,7 +241,7 @@ CLinuxRendererGLES::CLinuxRendererGLES()
     m_buffers[i].cvBufferRef = NULL;
 #endif
 #if defined(HAVE_LIBSTAGEFRIGHT)
-    m_buffers[i].texture_id = -1;
+    m_buffers[i].medbuf = NULL;
 #endif
   }
 
@@ -1455,53 +1457,94 @@ void CLinuxRendererGLES::RenderAndroid(int index, int field)
 
   g_xbmcapp.UpdateStagefrightTexture();
    
-  glDisable(GL_DEPTH_TEST);
+  android::MediaBuffer* mb = m_buffers[index].medbuf;
+  android::GraphicBuffer* gb = static_cast<android::GraphicBuffer*>(mb->graphicBuffer().get() );
+
+  EGLint eglImgAttrs[] = { EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_NONE };
+  EGLImageKHR  eglimg = eglCreateImageKHR(eglGetDisplay(EGL_DEFAULT_DISPLAY), EGL_NO_CONTEXT,
+                                  EGL_NATIVE_BUFFER_ANDROID,
+                                  (EGLClientBuffer)gb->getNativeBuffer(),
+                                  eglImgAttrs);
+  if (eglimg == EGL_NO_IMAGE_KHR) {
+    while ((glerr = glGetError()) != GL_NO_ERROR) {
+      CLog::Log(LOGERROR, ">>> error creating EGLImage: %#x", glerr);
+    }
+  }
+  while ((glerr = glGetError()) != GL_NO_ERROR) {
+    CLog::Log(LOGERROR, ">>> clear glerror: %#x", glerr);
+  }
+
+  const GLfloat triangleVertices[] = {
+    -1.0f, 1.0f,
+    -1.0f, -1.0f,
+    1.0f, -1.0f,
+    1.0f, 1.0f,
+  };
+
+  glVertexAttribPointer(mPositionHandle, 2, GL_FLOAT, GL_FALSE, 0,
+          triangleVertices);
+  while ((glerr = glGetError()) != GL_NO_ERROR) {
+    CLog::Log(LOGERROR, ">>> glVertexAttribPointer glerror: %#x", glerr);
+  }
+  ASSERT_EQ(GLenum(GL_NO_ERROR), glGetError());
+  glEnableVertexAttribArray(mPositionHandle);
+  ASSERT_EQ(GLenum(GL_NO_ERROR), glGetError());
+
+  glUseProgram(mPgm);
+  glUniform1i(mTexSamplerHandle, 0);
+  ASSERT_EQ(GLenum(GL_NO_ERROR), glGetError());
+
+  GLuint textureId;
+  glGenTextures(1, &textureId);
+  glBindTexture(GL_TEXTURE_EXTERNAL_OES, textureId);
+  glEGLImageTargetTexture2DOES(GL_TEXTURE_EXTERNAL_OES, (GLeglImageOES)eglimg);
+  while ((glerr = glGetError()) != GL_NO_ERROR) {
+    CLog::Log(LOGERROR, ">>> glEGLImageTargetTexture2DOES error(%d)\n", glerr);
+  }
 
   //glBindTexture(GL_TEXTURE_EXTERNAL_OES, g_xbmcapp.GetAndroidTexture());
+  //ASSERT_EQ(GLenum(GL_NO_ERROR), glGetError());
 
-          const GLfloat triangleVertices[] = {
-            -1.0f, 1.0f,
-            -1.0f, -1.0f,
-            1.0f, -1.0f,
-            1.0f, 1.0f,
-        };
+  // XXX: These calls are not needed for GL_TEXTURE_EXTERNAL_OES as
+  // they're setting the defautls for that target, but when hacking things
+  // to use GL_TEXTURE_2D they are needed to achieve the same behavior.
+  glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MIN_FILTER,
+          GL_LINEAR);
+  ASSERT_EQ(GLenum(GL_NO_ERROR), glGetError());
+  glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MAG_FILTER,
+          GL_LINEAR);
+  ASSERT_EQ(GLenum(GL_NO_ERROR), glGetError());
+  glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_S,
+          GL_CLAMP_TO_EDGE);
+  ASSERT_EQ(GLenum(GL_NO_ERROR), glGetError());
+  glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_T,
+          GL_CLAMP_TO_EDGE);
+  ASSERT_EQ(GLenum(GL_NO_ERROR), glGetError());
 
-        glVertexAttribPointer(mPositionHandle, 2, GL_FLOAT, GL_FALSE, 0,
-                triangleVertices);
-        ASSERT_EQ(GLenum(GL_NO_ERROR), glGetError());
-        glEnableVertexAttribArray(mPositionHandle);
-        ASSERT_EQ(GLenum(GL_NO_ERROR), glGetError());
+  GLfloat texMatrix[16] = {
+    1, 0, 0, 0,
+    0, -1, 0, 0,
+    0, 0, 1, 0,
+    0, 1, 0, 1,
+  };
+  glUniformMatrix4fv(mTexMatrixHandle, 1, GL_FALSE, texMatrix);
 
-        glUseProgram(mPgm);
-        glUniform1i(mTexSamplerHandle, 0);
-        ASSERT_EQ(GLenum(GL_NO_ERROR), glGetError());
-  glBindTexture(GL_TEXTURE_EXTERNAL_OES, g_xbmcapp.GetAndroidTexture());
-        ASSERT_EQ(GLenum(GL_NO_ERROR), glGetError());
+  glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+  ASSERT_EQ(GLenum(GL_NO_ERROR), glGetError());
 
-        // XXX: These calls are not needed for GL_TEXTURE_EXTERNAL_OES as
-        // they're setting the defautls for that target, but when hacking things
-        // to use GL_TEXTURE_2D they are needed to achieve the same behavior.
-        glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MIN_FILTER,
-                GL_LINEAR);
-        ASSERT_EQ(GLenum(GL_NO_ERROR), glGetError());
-        glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MAG_FILTER,
-                GL_LINEAR);
-        ASSERT_EQ(GLenum(GL_NO_ERROR), glGetError());
-        glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_S,
-                GL_CLAMP_TO_EDGE);
-        ASSERT_EQ(GLenum(GL_NO_ERROR), glGetError());
-        glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_T,
-                GL_CLAMP_TO_EDGE);
-        ASSERT_EQ(GLenum(GL_NO_ERROR), glGetError());
+  eglDestroyImageKHR(eglGetDisplay(EGL_DEFAULT_DISPLAY), eglimg);
+  while ((glerr = glGetError()) != GL_NO_ERROR) {
+    CLog::Log(LOGERROR, ">>> error destroying EGLImage: %#x", glerr);
+  }
 
-        GLfloat texMatrix[16];
-        g_xbmcapp.GetStagefrightTransformMatrix(texMatrix);          
-        glUniformMatrix4fv(mTexMatrixHandle, 1, GL_FALSE, texMatrix);
+  mb->release();
+  CStageFrightVideo::ReleaseOutputBuffer(mb);
+  m_buffers[index].medbuf = NULL;
+  
+  glDisable(GL_TEXTURE_EXTERNAL_OES);
+  VerifyGLState();
 
-        glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
-        ASSERT_EQ(GLenum(GL_NO_ERROR), glGetError());
-
-              CLog::Log(LOGDEBUG, ">>> tm:%d\n", XbmcThreads::SystemClockMillis() - time);
+  CLog::Log(LOGDEBUG, ">>> tm:%d\n", XbmcThreads::SystemClockMillis() - time);
 
         /*
   g_Windowing.EnableGUIShader(SM_TEXTURE_RGBA);
@@ -1684,7 +1727,7 @@ void CLinuxRendererGLES::UploadYV12Texture(int source)
 #if defined(HAVE_LIBOPENMAX)
   if (!(im->flags&IMAGE_FLAG_READY) || m_buffers[source].openMaxBuffer)
 #elif defined(HAVE_LIBSTAGEFRIGHT)
-  if (!(im->flags&IMAGE_FLAG_READY) || m_buffers[source].texture_id >= 0)
+  if (!(im->flags&IMAGE_FLAG_READY) || m_buffers[source].medbuf)
 #else
   if (!(im->flags&IMAGE_FLAG_READY))
 #endif
@@ -2309,10 +2352,17 @@ void CLinuxRendererGLES::AddProcessor(struct __CVBuffer *cvBufferRef)
 }
 #endif
 #ifdef HAVE_LIBSTAGEFRIGHT
-void CLinuxRendererGLES::AddProcessor(GLuint texture_id)
+void CLinuxRendererGLES::AddProcessor(android::MediaBuffer* medbuf)
 {
   YUVBUFFER &buf = m_buffers[NextYV12Texture()];
-  buf.texture_id = texture_id;
+  if (buf.medbuf)
+  {
+    buf.medbuf->release();
+    CStageFrightVideo::ReleaseOutputBuffer(buf.medbuf);
+  }
+  buf.medbuf = medbuf;
+  buf.medbuf->add_ref();
+
 }
 #endif
 

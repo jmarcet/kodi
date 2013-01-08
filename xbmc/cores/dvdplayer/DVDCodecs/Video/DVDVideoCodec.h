@@ -38,6 +38,9 @@ class CVDPAU;
 class COpenMax;
 class COpenMaxVideo;
 struct OpenMaxVideoBuffer;
+#ifdef HAVE_LIBSTAGEFRIGHT
+namespace android { class MediaBuffer; }
+#endif
 
 // should be entirely filled by all codecs
 struct DVDVideoPicture
@@ -70,9 +73,11 @@ struct DVDVideoPicture
       struct __CVBuffer *cvBufferRef;
     };
     
+#ifdef HAVE_LIBSTAGEFRIGHT
     struct {
-      unsigned int texture_id;
+      android::MediaBuffer* medbuf;
     };
+#endif
   };
 
   unsigned int iFlags;

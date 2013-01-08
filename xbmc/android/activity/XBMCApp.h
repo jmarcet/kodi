@@ -112,6 +112,7 @@ public:
   //const android::sp<android::SurfaceTexture>& GetAndroidSurfaceTexture() const { return m_SurfTexture;}
   const GLuint GetAndroidTexture() const { return m_VideoTextureId; }
   const android::sp<ANativeWindow>& GetAndroidVideoWindow() const { return m_VideoNativeWindow;}
+  const android::sp<android::SurfaceTexture>& GetAndroidSurfaceTexture() const { return m_SurfaceTexture;}
 #endif
 
 protected:
@@ -172,6 +173,7 @@ private:
   jmethodID m_midUpdateTexImage;
   jmethodID m_midGetTransformMatrix;
   android::sp<ANativeWindow> m_VideoNativeWindow;
+  android::sp<android::SurfaceTexture> m_SurfaceTexture;
 #endif
   
   void XBMC_Pause(bool pause);

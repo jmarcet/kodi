@@ -40,6 +40,9 @@ namespace Shaders { class BaseYUV2RGBShader; }
 namespace Shaders { class BaseVideoFilterShader; }
 class COpenMaxVideo;
 typedef std::vector<int>     Features;
+#ifdef HAVE_STAGEFRIGHT
+namespace android { class MediaBuffer; }
+#endif
 
 #define NUM_BUFFERS 3
 
@@ -160,7 +163,7 @@ public:
   virtual void         AddProcessor(struct __CVBuffer *cvBufferRef);
 #endif
 #ifdef HAVE_LIBSTAGEFRIGHT
-  virtual void         AddProcessor(GLuint texture_id);
+  virtual void         AddProcessor(android::MediaBuffer* medbuf);
 #endif
 
 protected:
@@ -267,7 +270,7 @@ protected:
   struct __CVBuffer *cvBufferRef;
 #endif
 #ifdef HAVE_LIBSTAGEFRIGHT
-  GLuint texture_id;
+  android::MediaBuffer* medbuf;
 #endif
 
   };

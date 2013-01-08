@@ -1006,6 +1006,10 @@ bool CXBMCApp::InitStagefright()
   m_midUpdateTexImage = env->GetMethodID(cSurfaceTexture, "updateTexImage", "()V");
   m_midGetTransformMatrix  = env->GetMethodID(cSurfaceTexture, "getTransformMatrix", "([F)V");
   jobject oSurfTexture = env->NewObject(cSurfaceTexture, midSurfaceTextureCtor, m_VideoTextureId);
+  
+  jfieldID fidSurfaceTexture = env->GetFieldID(cSurfaceTexture, ANDROID_GRAPHICS_SURFACETEXTURE_JNI_ID, "I");
+  m_SurfaceTexture = (android::SurfaceTexture*)env->GetIntField(oSurfTexture, fidSurfaceTexture);
+  
   env->DeleteLocalRef(cSurfaceTexture);
   m_SurfTexture = env->NewGlobalRef(oSurfTexture);
   env->DeleteLocalRef(oSurfTexture);
@@ -1020,7 +1024,7 @@ bool CXBMCApp::InitStagefright()
 
   env->CallVoidMethod(oSurface, midSurfaceRelease);
   env->DeleteLocalRef(oSurface);
-
+  
   glDisable(GL_TEXTURE_EXTERNAL_OES);
 
   DetachCurrentThread();
@@ -1036,6 +1040,8 @@ void CXBMCApp::UninitStagefright()
   ANativeWindow_release(m_VideoNativeWindow.get());
   m_VideoNativeWindow.clear();
   m_VideoNativeWindow = NULL;
+  m_SurfaceTexture.clear();
+  m_SurfaceTexture = NULL;
   glDeleteTextures(1, &m_VideoTextureId);
   
   jclass cSurfaceTexture = env->GetObjectClass(m_SurfTexture);
@@ -1050,16 +1056,20 @@ void CXBMCApp::UninitStagefright()
 
 void CXBMCApp::UpdateStagefrightTexture()
 {
+/*
   JNIEnv *env = NULL;
   AttachCurrentThread(&env);
 
   env->CallVoidMethod(m_SurfTexture, m_midUpdateTexImage);
 
   DetachCurrentThread();
+  */
+  m_SurfaceTexture->updateTexImage();
 }
 
 void CXBMCApp::GetStagefrightTransformMatrix(float* transformMatrix)
 {
+  /*
   JNIEnv *env = NULL;
   AttachCurrentThread(&env);
 
@@ -1073,5 +1083,7 @@ void CXBMCApp::GetStagefrightTransformMatrix(float* transformMatrix)
   env->DeleteLocalRef(arr);
 
   DetachCurrentThread();
+  */
+  m_SurfaceTexture->getTransformMatrix(transformMatrix);
 }
 #endif

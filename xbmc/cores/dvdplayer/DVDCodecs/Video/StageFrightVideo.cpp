@@ -505,7 +505,10 @@ bool CStageFrightVideo::ClearPicture(DVDVideoPicture* pDvdVideoPicture)
 #endif
   if (m_context->prev_frame) {
     if (m_context->prev_frame->medbuf)
-      m_context->prev_frame->medbuf->release();
+      if (pDvdVideoPicture->format == RENDER_FMT_TEXTURE)
+          ReleaseOutputBuffer(m_context->prev_frame->medbuf);
+       else
+        m_context->prev_frame->medbuf->release();
     free(m_context->prev_frame);
     m_context->prev_frame = NULL;
   }
@@ -548,22 +551,14 @@ bool CStageFrightVideo::GetPicture(DVDVideoPicture* pDvdVideoPicture)
   pDvdVideoPicture->iDisplayHeight = frame->height;
   pDvdVideoPicture->iFlags  = DVP_FLAG_ALLOCATED;
   pDvdVideoPicture->pts = pts_itod(frame->pts);
-  pDvdVideoPicture->texture_id = -1;
+  pDvdVideoPicture->medbuf = NULL;
   
   if (frame->medbuf)
   {
     if (frame->medbuf->graphicBuffer() != 0)
     {
       pDvdVideoPicture->format = RENDER_FMT_TEXTURE;
-      pDvdVideoPicture->texture_id = 0;
-
-      android::GraphicBuffer* graphicBuffer = static_cast<android::GraphicBuffer*>(frame->medbuf->graphicBuffer().get() );
-      ANativeWindow* nativeWindow = static_cast<ANativeWindow*>(g_xbmcapp.GetAndroidVideoWindow().get());
-      int err = nativeWindow->queueBuffer(nativeWindow, graphicBuffer);   
-      if (err == 0)
-        frame->medbuf->meta_data()->setInt32(kKeyRendered, 1);
-      frame->medbuf->release();
-      frame->medbuf = NULL;
+      pDvdVideoPicture->medbuf = frame->medbuf;
       
     #if defined(STAGEFRIGHT_DEBUG_VERBOSE)
       CLog::Log(LOGDEBUG, ">>> pic pts:%f, textured, tm:%d\n", pDvdVideoPicture->pts, XbmcThreads::SystemClockMillis() - time);
@@ -688,4 +683,20 @@ void CStageFrightVideo::SetDropState(bool bDrop)
   m_context->drop_state = bDrop;
 }
 
+/***********************************************/
 
+void CStageFrightVideo::ReleaseOutputBuffer(MediaBuffer* medbuf)
+{
+#if defined(STAGEFRIGHT_DEBUG_VERBOSE)
+  CLog::Log(LOGDEBUG, "%s::ReleaseOutputBuffer(%d)\n", CLASSNAME, medbuf->refcount());
+#endif
+  if (medbuf->refcount() <= 2)
+  {
+    android::GraphicBuffer* graphicBuffer = static_cast<android::GraphicBuffer*>(medbuf->graphicBuffer().get() );
+    ANativeWindow* nativeWindow = static_cast<ANativeWindow*>(g_xbmcapp.GetAndroidVideoWindow().get());
+    int err = nativeWindow->queueBuffer(nativeWindow, graphicBuffer);   
+    if (err == 0)
+      medbuf->meta_data()->setInt32(kKeyRendered, 1);
+    medbuf->release();
+  }
+}
