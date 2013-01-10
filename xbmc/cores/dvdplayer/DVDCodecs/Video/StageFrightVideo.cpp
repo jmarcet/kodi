@@ -268,6 +268,8 @@ bool CStageFrightVideo::Open(CDVDStreamInfo &hints)
     goto fail;
   }  
   
+  g_xbmcapp.InitStagefrightSurface();
+
   m_context->decoder  = OMXCodec::Create(m_context->client->interface(), m_context->meta,
                                          false, m_context->source, NULL,
                                          OMXCodec::kHardwareCodecsOnly,
@@ -276,6 +278,7 @@ bool CStageFrightVideo::Open(CDVDStreamInfo &hints)
   if (!(m_context->decoder != NULL && m_context->decoder->start() ==  OK))
   {
     m_context->client->disconnect();
+    g_xbmcapp.UninitStagefrightSurface();
     goto fail;
   }
 
@@ -284,16 +287,20 @@ bool CStageFrightVideo::Open(CDVDStreamInfo &hints)
         || !outFormat->findInt32(kKeyColorFormat, &m_context->videoColorFormat))
   {
     m_context->client->disconnect();
+    g_xbmcapp.UninitStagefrightSurface();
     goto fail;
   }
+  /*
   if (m_context->videoColorFormat != OMX_COLOR_FormatYUV420Planar &&
         m_context->videoColorFormat != OMX_COLOR_FormatYUV420SemiPlanar &&
         m_context->videoColorFormat != OMX_QCOM_COLOR_FormatYVU420SemiPlanar)
   {
     CLog::Log(LOGERROR, "%s::%s - %s: %d\n", CLASSNAME, __func__,"Unsupported color format",m_context->videoColorFormat);
     m_context->client->disconnect();
+    g_xbmcapp.UninitStagefrightSurface();
     goto fail;
   }
+  */
 
   if (!outFormat->findInt32(kKeyStride, &m_context->videoStride))
     m_context->videoStride = m_context->width;
@@ -321,7 +328,8 @@ bool CStageFrightVideo::Open(CDVDStreamInfo &hints)
   return true;
 
 fail:
-  delete m_context->client;
+  if (m_context->client)
+    delete m_context->client;
   return false;
 }
 
@@ -379,7 +387,7 @@ int  CStageFrightVideo::Decode(BYTE *pData, int iSize, double dts, double pts)
   time = XbmcThreads::SystemClockMillis();
 	CLog::Log(LOGDEBUG, "%s: >>> Handling frame\n", CLASSNAME);
 	#endif
-  int32_t w, h;
+  int32_t w, h, dw, dh;
 	frame = (Frame*)malloc(sizeof(Frame));
 	if (!frame) {
     m_context->cur_frame = NULL;
@@ -413,6 +421,11 @@ int  CStageFrightVideo::Decode(BYTE *pData, int iSize, double dts, double pts)
 	  outFormat->findInt32(kKeyWidth , &w);
 	  outFormat->findInt32(kKeyHeight, &h);
     
+ 	  if (!outFormat->findInt32(kKeyDisplayWidth , &dw))
+      dw = w;
+	  if (!outFormat->findInt32(kKeyDisplayHeight, &dh))
+      dh = h;
+   
     if (!outFormat->findInt32(kKeyIsSyncFrame, &keyframe))
       keyframe = 0;
     if (!outFormat->findInt32(kKeyIsUnreadable, &unreadable))
@@ -433,12 +446,7 @@ int  CStageFrightVideo::Decode(BYTE *pData, int iSize, double dts, double pts)
 	  frame->width = w;
 	  frame->height = h;
     frame->medbuf->meta_data()->findInt64(kKeyTime, &(frame->pts));
-    if (m_context->drop_state)
-    {
-      frame->medbuf->release();
-      frame->medbuf = NULL;
-    }
-    else if (!frame->medbuf->graphicBuffer().get())  // hw buffers
+    if (!frame->medbuf->graphicBuffer().get())  // hw buffers
     {
       if (frame->medbuf->range_length() == 0)
       {
@@ -489,7 +497,7 @@ int  CStageFrightVideo::Decode(BYTE *pData, int iSize, double dts, double pts)
   
   m_context->cur_frame = frame;
 	#if defined(STAGEFRIGHT_DEBUG_VERBOSE)
-	CLog::Log(LOGDEBUG, "%s: >>> pushed OUT frame; tm:%d, kf:%d, ur:%d\n", CLASSNAME,XbmcThreads::SystemClockMillis() - time, keyframe, unreadable);
+	CLog::Log(LOGDEBUG, "%s: >>> pushed OUT frame; w:%d, h:%d, dw:%d, dh:%d, kf:%d, ur:%d, tm:%d\n", CLASSNAME, w, h, dw, dh, keyframe, unreadable, XbmcThreads::SystemClockMillis() - time);
 	#endif
 
   if (m_context->cur_frame)
@@ -505,7 +513,7 @@ bool CStageFrightVideo::ClearPicture(DVDVideoPicture* pDvdVideoPicture)
 #endif
   if (m_context->prev_frame) {
     if (m_context->prev_frame->medbuf)
-      if (pDvdVideoPicture->format == RENDER_FMT_TEXTURE)
+      if (pDvdVideoPicture->format == RENDER_FMT_ANDOES)
           ReleaseOutputBuffer(m_context->prev_frame->medbuf);
        else
         m_context->prev_frame->medbuf->release();
@@ -557,7 +565,7 @@ bool CStageFrightVideo::GetPicture(DVDVideoPicture* pDvdVideoPicture)
   {
     if (frame->medbuf->graphicBuffer() != 0)
     {
-      pDvdVideoPicture->format = RENDER_FMT_TEXTURE;
+      pDvdVideoPicture->format = RENDER_FMT_ANDOES;
       pDvdVideoPicture->medbuf = frame->medbuf;
       
     #if defined(STAGEFRIGHT_DEBUG_VERBOSE)
@@ -576,7 +584,7 @@ bool CStageFrightVideo::GetPicture(DVDVideoPicture* pDvdVideoPicture)
       unsigned int luma_pixels = frame->width * frame->height;
       unsigned int chroma_pixels = luma_pixels/4;
       BYTE* data = NULL;
-      if (frame->medbuf)
+      if (frame->medbuf && !m_context->drop_state)
         data = (BYTE*)(frame->medbuf->data() + frame->medbuf->range_offset());
       switch (m_context->videoColorFormat)
       {
@@ -652,18 +660,13 @@ void CStageFrightVideo::Close()
   if (m_context->decoder_component)
     free(&m_context->decoder_component);
 
-  //delete m_context->decoder;
   delete m_context->client;
-  //delete m_context->source;
-  //delete m_context->surface;
-  //delete m_context->texture;
-
-  //glDeleteTextures(1, &m_context->texture_id);
 
   pthread_mutex_destroy(&m_context->in_mutex);
   pthread_cond_destroy(&m_context->condition);
-
   delete m_context;
+  
+  g_xbmcapp.UninitStagefrightSurface();
 }
 
 void CStageFrightVideo::Reset(void)

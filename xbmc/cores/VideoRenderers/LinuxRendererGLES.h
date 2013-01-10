@@ -90,7 +90,7 @@ enum RenderMethod
   RENDER_OMXEGL = 0x040,
   RENDER_CVREF  = 0x080,
   RENDER_BYPASS = 0x100,
-  RENDER_TEXTURE = 0x200
+  RENDER_ANDOES = 0x200
 };
 
 enum RenderQuality
@@ -193,6 +193,10 @@ protected:
   void DeleteBYPASSTexture(int index);
   bool CreateBYPASSTexture(int index);
 
+  void UploadANDOESTexture(int index);
+  void DeleteANDOESTexture(int index);
+  bool CreateANDOESTexture(int index);
+
   void CalculateTextureSourceRects(int source, int num_planes);
 
   // renderers
@@ -267,10 +271,10 @@ protected:
     OpenMaxVideoBuffer *openMaxBuffer;
 #endif
 #ifdef HAVE_VIDEOTOOLBOXDECODER
-  struct __CVBuffer *cvBufferRef;
+    struct __CVBuffer *cvBufferRef;
 #endif
 #ifdef HAVE_LIBSTAGEFRIGHT
-  android::MediaBuffer* medbuf;
+    android::MediaBuffer* medbuf;
 #endif
 
   };

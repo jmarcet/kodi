@@ -272,8 +272,6 @@ CLinuxRendererGLES::CLinuxRendererGLES()
   m_sw_context = NULL;
   
 #ifdef HAVE_LIBSTAGEFRIGHT
-  g_xbmcapp.InitStagefright();
-
   if (!eglCreateImageKHR)
   {
     GETEXTENSION(PFNEGLCREATEIMAGEKHRPROC,  eglCreateImageKHR);
@@ -294,10 +292,6 @@ CLinuxRendererGLES::~CLinuxRendererGLES()
   UnInit();
   for (int i = 0; i < NUM_BUFFERS; i++)
     delete m_eventTexturesDone[i];
-
-#ifdef HAVE_LIBSTAGEFRIGHT
-  g_xbmcapp.UninitStagefright();
-#endif
 
   if (m_rgbBuffer != NULL) {
     delete [] m_rgbBuffer;
@@ -325,7 +319,13 @@ bool CLinuxRendererGLES::ValidateRenderTarget()
 {
   if (!m_bValidated)
   {
-    CLog::Log(LOGNOTICE,"Using GL_TEXTURE_2D");
+    if (m_format == RENDER_FMT_ANDOES)
+    {
+      CLog::Log(LOGNOTICE,"Using GL_TEXTURE_EXTERNAL_OES");
+      m_textureTarget = GL_TEXTURE_EXTERNAL_OES;
+    }
+    else
+      CLog::Log(LOGNOTICE,"Using GL_TEXTURE_2D");
 
      // create the yuv textures
     LoadShaders();
@@ -399,10 +399,12 @@ int CLinuxRendererGLES::GetImage(YV12Image *image, int source, bool readonly)
   {
     return source;
   }
-  if ( m_renderMethod & RENDER_TEXTURE )
+#ifdef HAVE_LIBSTAGEFRIGHT
+  if ( m_renderMethod & RENDER_ANDOES )
   {
     return source;
   }
+#endif
 #ifdef HAVE_VIDEOTOOLBOXDECODER
   if (m_renderMethod & RENDER_CVREF )
   {
@@ -624,7 +626,7 @@ void CLinuxRendererGLES::RenderUpdate(bool clear, DWORD flags, DWORD alpha)
   int index = m_iYV12RenderBuffer;
   YUVBUFFER& buf =  m_buffers[index];
 
-  if (m_format != RENDER_FMT_OMXEGL)
+  if (m_format != RENDER_FMT_OMXEGL && m_format != RENDER_FMT_ANDOES)
   {
     if (!buf.fields[FIELD_FULL][0].id) return;
   }
@@ -716,7 +718,7 @@ unsigned int CLinuxRendererGLES::PreInit()
   m_formats.push_back(RENDER_FMT_CVBREF);
 #endif
 #ifdef HAVE_LIBSTAGEFRIGHT
-  m_formats.push_back(RENDER_FMT_TEXTURE);
+  m_formats.push_back(RENDER_FMT_ANDOES);
 #endif
 
   // setup the background colour
@@ -817,10 +819,10 @@ void CLinuxRendererGLES::LoadShaders(int field)
         m_renderMethod = RENDER_OMXEGL;
         break;
       }
-      else if (m_format == RENDER_FMT_TEXTURE)
+      else if (m_format == RENDER_FMT_ANDOES)
       {
-        CLog::Log(LOGNOTICE, "GL: Using TEXTURE render method");
-        m_renderMethod = RENDER_TEXTURE;
+        CLog::Log(LOGNOTICE, "GL: Using ANDROID OES render method");
+        m_renderMethod = RENDER_ANDOES;
         OES_shader_setUp();
        break;
       }
@@ -898,6 +900,12 @@ void CLinuxRendererGLES::LoadShaders(int field)
     m_textureCreate = &CLinuxRendererGLES::CreateBYPASSTexture;
     m_textureDelete = &CLinuxRendererGLES::DeleteBYPASSTexture;
   }
+  else if (m_format == RENDER_FMT_ANDOES)
+  {
+    m_textureUpload = &CLinuxRendererGLES::UploadANDOESTexture;
+    m_textureCreate = &CLinuxRendererGLES::CreateANDOESTexture;
+    m_textureDelete = &CLinuxRendererGLES::DeleteANDOESTexture;
+  }
   else
   {
     // default to YV12 texture handlers
@@ -929,15 +937,6 @@ void CLinuxRendererGLES::UnInit()
   // YV12 textures
   for (int i = 0; i < NUM_BUFFERS; ++i)
   {
-#ifdef HAVE_LIBSTAGEFRIGHT
-    YUVBUFFER &buf = m_buffers[i];
-    if (buf.medbuf)
-    {
-      if (buf.medbuf->refcount() > 1)
-        buf.medbuf->release();
-      CStageFrightVideo::ReleaseOutputBuffer(buf.medbuf);
-    }
-#endif
     (this->*m_textureDelete)(i);
   }
 
@@ -1018,7 +1017,7 @@ void CLinuxRendererGLES::Render(DWORD flags, int index)
     RenderOpenMax(index, m_currentField);
     VerifyGLState();
   }
-  else if (m_renderMethod & RENDER_TEXTURE)
+  else if (m_renderMethod & RENDER_ANDOES)
   {
     RenderAndroid(index, m_currentField);
     VerifyGLState();
@@ -1462,39 +1461,59 @@ void CLinuxRendererGLES::RenderOpenMax(int index, int field)
 void CLinuxRendererGLES::RenderAndroid(int index, int field)
 {
 #if defined(HAVE_LIBSTAGEFRIGHT)
-  int glerr;
-  
   unsigned int time = XbmcThreads::SystemClockMillis();
   CLog::Log(LOGDEBUG, "RenderAndroid\n");
 
-  glEnable(GL_TEXTURE_EXTERNAL_OES);
+  YUVPLANE &plane = m_buffers[index].fields[field][0];
 
-  
-  //g_xbmcapp.UpdateStagefrightTexture();
-   
-  android::MediaBuffer* mb = m_buffers[index].medbuf;
-  android::GraphicBuffer* gb = static_cast<android::GraphicBuffer*>(mb->graphicBuffer().get() );
-
-  EGLint eglImgAttrs[] = { EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_NONE };
-  EGLImageKHR  eglimg = eglCreateImageKHR(eglGetDisplay(EGL_DEFAULT_DISPLAY), EGL_NO_CONTEXT,
-                                  EGL_NATIVE_BUFFER_ANDROID,
-                                  (EGLClientBuffer)gb->getNativeBuffer(),
-                                  eglImgAttrs);
-  if (eglimg == EGL_NO_IMAGE_KHR) {
-    while ((glerr = glGetError()) != GL_NO_ERROR) {
-      CLog::Log(LOGERROR, ">>> error creating EGLImage: %#x", glerr);
+  glDisable(GL_DEPTH_TEST);
+ 
+ /*
+void NativeWindowRenderer::calculatePositionCoordinates(
+        M4xVSS_MediaRendering renderingMode, int srcWidth, int srcHeight) {
+    float x, y;
+    switch (renderingMode) {
+        case M4xVSS_kResizing:
+        default:
+            x = 1;
+            y = 1;
+            break;
+        case M4xVSS_kCropping:
+            x = float(srcWidth) / mDstWidth;
+            y = float(srcHeight) / mDstHeight;
+            // Make the smaller side 1
+            if (x > y) {
+                x /= y;
+                y = 1;
+            } else {
+                y /= x;
+                x = 1;
+            }
+            break;
+        case M4xVSS_kBlackBorders:
+            x = float(srcWidth) / mDstWidth;
+            y = float(srcHeight) / mDstHeight;
+            // Make the larger side 1
+            if (x > y) {
+                y /= x;
+                x = 1;
+            } else {
+                x /= y;
+                y = 1;
+            }
+            break;
     }
-  }
-  while ((glerr = glGetError()) != GL_NO_ERROR) {
-    CLog::Log(LOGERROR, ">>> clear glerror: %#x", glerr);
-  }
 
-  GLuint textureId;
-  glGenTextures(1, &textureId);
-  glBindTexture(GL_TEXTURE_EXTERNAL_OES, textureId);
-  glEGLImageTargetTexture2DOES(GL_TEXTURE_EXTERNAL_OES, (GLeglImageOES)eglimg);
-  ASSERT_EQ(GLenum(GL_NO_ERROR), glGetError());
-  
+    mPositionCoordinates[0] = -x;
+    mPositionCoordinates[1] = y;
+    mPositionCoordinates[2] = -x;
+    mPositionCoordinates[3] = -y;
+    mPositionCoordinates[4] = x;
+    mPositionCoordinates[5] = -y;
+    mPositionCoordinates[6] = x;
+    mPositionCoordinates[7] = y;
+}
+*/ 
   const GLfloat triangleVertices[] = {
     -1.0f, 1.0f,
     -1.0f, -1.0f,
@@ -1504,32 +1523,12 @@ void CLinuxRendererGLES::RenderAndroid(int index, int field)
 
   glVertexAttribPointer(mPositionHandle, 2, GL_FLOAT, GL_FALSE, 0,
           triangleVertices);
-  ASSERT_EQ(GLenum(GL_NO_ERROR), glGetError());
   glEnableVertexAttribArray(mPositionHandle);
-  ASSERT_EQ(GLenum(GL_NO_ERROR), glGetError());
+  VerifyGLState();
 
   glUseProgram(mPgm);
   glUniform1i(mTexSamplerHandle, 0);
-  ASSERT_EQ(GLenum(GL_NO_ERROR), glGetError());
-
-  //glBindTexture(GL_TEXTURE_EXTERNAL_OES, g_xbmcapp.GetAndroidTexture());
-  //ASSERT_EQ(GLenum(GL_NO_ERROR), glGetError());
-
-  // XXX: These calls are not needed for GL_TEXTURE_EXTERNAL_OES as
-  // they're setting the defautls for that target, but when hacking things
-  // to use GL_TEXTURE_2D they are needed to achieve the same behavior.
-  glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MIN_FILTER,
-          GL_LINEAR);
-  ASSERT_EQ(GLenum(GL_NO_ERROR), glGetError());
-  glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MAG_FILTER,
-          GL_LINEAR);
-  ASSERT_EQ(GLenum(GL_NO_ERROR), glGetError());
-  glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_S,
-          GL_CLAMP_TO_EDGE);
-  ASSERT_EQ(GLenum(GL_NO_ERROR), glGetError());
-  glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_T,
-          GL_CLAMP_TO_EDGE);
-  ASSERT_EQ(GLenum(GL_NO_ERROR), glGetError());
+  VerifyGLState();
 
   GLfloat texMatrix[16] = {
     1, 0, 0, 0,
@@ -1540,13 +1539,11 @@ void CLinuxRendererGLES::RenderAndroid(int index, int field)
   glUniformMatrix4fv(mTexMatrixHandle, 1, GL_FALSE, texMatrix);
  
   glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
-  ASSERT_EQ(GLenum(GL_NO_ERROR), glGetError());
-
-  glDeleteTextures(1, &textureId);
-  eglDestroyImageKHR(eglGetDisplay(EGL_DEFAULT_DISPLAY), eglimg);
-  ASSERT_EQ(GLenum(GL_NO_ERROR), glGetError());
+  VerifyGLState();
   
-  glDisable(GL_TEXTURE_EXTERNAL_OES);
+  glDeleteTextures(1, &plane.id);
+
+  glDisable(m_textureTarget);
   VerifyGLState();
 
   CLog::Log(LOGDEBUG, ">>> tm:%d\n", XbmcThreads::SystemClockMillis() - time);
@@ -1685,8 +1682,6 @@ void CLinuxRendererGLES::UploadYV12Texture(int source)
 
 #if defined(HAVE_LIBOPENMAX)
   if (!(im->flags&IMAGE_FLAG_READY) || m_buffers[source].openMaxBuffer)
-#elif defined(HAVE_LIBSTAGEFRIGHT)
-  if (!(im->flags&IMAGE_FLAG_READY) || m_buffers[source].medbuf)
 #else
   if (!(im->flags&IMAGE_FLAG_READY))
 #endif
@@ -2117,6 +2112,94 @@ bool CLinuxRendererGLES::CreateBYPASSTexture(int index)
   return true;
 }
 
+//********************************************************************************************************
+// ANDOES creation, deletion, copying + clearing
+//********************************************************************************************************
+void CLinuxRendererGLES::UploadANDOESTexture(int index)
+{
+#ifdef HAVE_LIBSTAGEFRIGHT
+  YV12Image &im     = m_buffers[index].image;
+  YUVFIELDS &fields = m_buffers[index].fields;
+  YUVPLANE  &plane  = fields[0][0];
+
+  memset(&im    , 0, sizeof(im));
+  memset(&fields, 0, sizeof(fields));
+
+  im.height = m_sourceHeight;
+  im.width  = m_sourceWidth;
+
+  plane.texwidth  = im.width;
+  plane.texheight = im.height;
+
+  glEnable(m_textureTarget);
+  glGenTextures(1, &plane.id);
+  VerifyGLState();
+
+  glBindTexture(m_textureTarget, plane.id);
+
+  glTexParameteri(m_textureTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(m_textureTarget, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(m_textureTarget, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(m_textureTarget, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+  int glerr;
+
+  android::MediaBuffer* mb = m_buffers[index].medbuf;
+  android::GraphicBuffer* gb = static_cast<android::GraphicBuffer*>(mb->graphicBuffer().get() );
+
+  if (!gb)
+    return;
+
+  EGLint eglImgAttrs[] = { EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_NONE };
+  EGLImageKHR  eglimg = eglCreateImageKHR(eglGetDisplay(EGL_DEFAULT_DISPLAY), EGL_NO_CONTEXT,
+                                  EGL_NATIVE_BUFFER_ANDROID,
+                                  (EGLClientBuffer)gb->getNativeBuffer(),
+                                  eglImgAttrs);
+  if (eglimg == EGL_NO_IMAGE_KHR) {
+    while ((glerr = glGetError()) != GL_NO_ERROR) {
+      CLog::Log(LOGERROR, ">>> error creating EGLImage: %#x", glerr);
+    }
+  }
+  while ((glerr = glGetError()) != GL_NO_ERROR) {
+    CLog::Log(LOGERROR, ">>> clear glerror: %#x", glerr);
+  }
+
+  glEGLImageTargetTexture2DOES(m_textureTarget, (GLeglImageOES)eglimg);
+  VerifyGLState();
+  
+  eglDestroyImageKHR(eglGetDisplay(EGL_DEFAULT_DISPLAY), eglimg);
+
+  plane.flipindex = m_buffers[index].flipindex;
+
+  m_eventTexturesDone[index]->Set();
+#endif
+}
+void CLinuxRendererGLES::DeleteANDOESTexture(int index)
+{
+#ifdef HAVE_LIBSTAGEFRIGHT
+  YUVPLANE &plane = m_buffers[index].fields[0][0];
+
+  if (m_buffers[index].medbuf)
+  {
+    if (m_buffers[index].medbuf->refcount() > 1)
+      m_buffers[index].medbuf->release();
+    CStageFrightVideo::ReleaseOutputBuffer(m_buffers[index].medbuf);
+  }
+  m_buffers[index].medbuf = NULL;
+
+  if(plane.id && glIsTexture(plane.id))
+    glDeleteTextures(1, &plane.id);
+  plane.id = 0;
+#endif
+}
+bool CLinuxRendererGLES::CreateANDOESTexture(int index)
+{
+#ifdef HAVE_LIBSTAGEFRIGHT
+  m_eventTexturesDone[index]->Set();
+#endif
+  return true;
+}
+
 void CLinuxRendererGLES::SetTextureFilter(GLenum method)
 {
   for (int i = 0 ; i<m_NumYV12Buffers ; i++)
@@ -2228,7 +2311,7 @@ bool CLinuxRendererGLES::Supports(EINTERLACEMETHOD method)
   if(m_renderMethod & RENDER_OMXEGL)
     return false;
 
-  if(m_renderMethod & RENDER_TEXTURE)
+  if(m_renderMethod & RENDER_ANDOES)
     return false;
 
   if(m_renderMethod & RENDER_CVREF)
@@ -2279,7 +2362,7 @@ EINTERLACEMETHOD CLinuxRendererGLES::AutoInterlaceMethod()
   if(m_renderMethod & RENDER_OMXEGL)
     return VS_INTERLACEMETHOD_NONE;
 
-  if(m_renderMethod & RENDER_TEXTURE)
+  if(m_renderMethod & RENDER_ANDOES)
     return VS_INTERLACEMETHOD_NONE;
 
   if(m_renderMethod & RENDER_CVREF)

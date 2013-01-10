@@ -1121,8 +1121,8 @@ int CDVDPlayerVideo::OutputPicture(const DVDVideoPicture* src, double pts)
       case RENDER_FMT_OMXEGL:
         formatstr = "OMXEGL";
         break;
-      case RENDER_FMT_TEXTURE:
-        formatstr = "TEXTURE";
+      case RENDER_FMT_ANDOES:
+        formatstr = "ANDROID_OES";
         break;
       case RENDER_FMT_CVBREF:
         formatstr = "BGRA";

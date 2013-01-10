@@ -104,13 +104,11 @@ public:
   static int GetDPI();
   
 #ifdef HAVE_LIBSTAGEFRIGHT
-  bool InitStagefright();
-  void UninitStagefright();
-  void UpdateStagefrightTexture();
+  bool InitStagefrightSurface();
+  void UninitStagefrightSurface();
+  void UpdateStagefrightSurface();
   void GetStagefrightTransformMatrix(float*);
 
-  //const android::sp<android::SurfaceTexture>& GetAndroidSurfaceTexture() const { return m_SurfTexture;}
-  const GLuint GetAndroidTexture() const { return m_VideoTextureId; }
   const android::sp<ANativeWindow>& GetAndroidVideoWindow() const { return m_VideoNativeWindow;}
   const android::sp<android::SurfaceTexture>& GetAndroidSurfaceTexture() const { return m_SurfaceTexture;}
 #endif
@@ -168,7 +166,6 @@ private:
     
   static ANativeWindow* m_window;
 #ifdef HAVE_LIBSTAGEFRIGHT
-  GLuint m_VideoTextureId;
   jobject m_SurfTexture;
   jmethodID m_midUpdateTexImage;
   jmethodID m_midGetTransformMatrix;
