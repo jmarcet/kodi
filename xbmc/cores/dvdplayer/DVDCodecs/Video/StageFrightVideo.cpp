@@ -594,7 +594,7 @@ bool CStageFrightVideo::GetPicture(DVDVideoPicture* pDvdVideoPicture)
       pDvdVideoPicture->format = RENDER_FMT_ANDOES;
 	  
       android::GraphicBuffer* gb = static_cast<android::GraphicBuffer*>( frame->medbuf->graphicBuffer().get() );
-      EGLint eglImgAttrs[] = { EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_NONE };
+      EGLint eglImgAttrs[] = { EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_NONE, EGL_NONE };
       pDvdVideoPicture->eglimg = eglCreateImageKHR(eglGetDisplay(EGL_DEFAULT_DISPLAY), EGL_NO_CONTEXT,
                                   EGL_NATIVE_BUFFER_ANDROID,
                                   (EGLClientBuffer)gb->getNativeBuffer(),

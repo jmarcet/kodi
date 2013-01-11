@@ -226,17 +226,6 @@ protected:
   int m_currentField;
   int m_reloadShaders;
   
-#ifdef HAVE_LIBSTAGEFRIGHT
-    GLuint mPgm;
-    GLint mPositionHandle;
-    GLint mTexSamplerHandle;
-    GLint mTexMatrixHandle;
-    
-    void loadShader(GLenum shaderType, const char* pSource, GLuint* outShader);
-    void createProgram(const char* pVertexSource, const char* pFragmentSource, GLuint* outPgm);
-    void OES_shader_setUp();
-#endif
-
 
   struct YUVPLANE
   {

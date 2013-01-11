@@ -86,136 +86,7 @@ do \
 
 #define ASSERT_EQ(x, y) assert((x) == (y))
 #define ASSERT_NE(x, y) assert((x) != (y))
-#define ASSERT_TRUE(x) assert((x))
-
-        GLint error;
-
-    void CLinuxRendererGLES::loadShader(GLenum shaderType, const char* pSource, GLuint* outShader) 
-    {
-       CLog::Log(LOGDEBUG, ">>>loadShader\n");
-       GLuint shader = glCreateShader(shaderType);
-            while ((error = glGetError()) != GL_NO_ERROR) {
-                CLog::Log(LOGERROR, "loadShader error: %#04x", error);
-            }
-        ASSERT_EQ(GLenum(GL_NO_ERROR), glGetError());
-        if (shader) {
-            glShaderSource(shader, 1, &pSource, NULL);
-            ASSERT_EQ(GLenum(GL_NO_ERROR), glGetError());
-            glCompileShader(shader);
-            ASSERT_EQ(GLenum(GL_NO_ERROR), glGetError());
-            GLint compiled = 0;
-            glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
-            ASSERT_EQ(GLenum(GL_NO_ERROR), glGetError());
-            if (!compiled) {
-                GLint infoLen = 0;
-                glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLen);
-                ASSERT_EQ(GLenum(GL_NO_ERROR), glGetError());
-                if (infoLen) {
-                    char* buf = (char*) malloc(infoLen);
-                    if (buf) {
-                        glGetShaderInfoLog(shader, infoLen, NULL, buf);
-                        printf("Shader compile log:\n%s\n", buf);
-                        free(buf);
-                    }
-                } else {
-                    char* buf = (char*) malloc(0x1000);
-                    if (buf) {
-                        glGetShaderInfoLog(shader, 0x1000, NULL, buf);
-                        printf("Shader compile log:\n%s\n", buf);
-                        free(buf);
-                    }
-                }
-                glDeleteShader(shader);
-                shader = 0;
-            }
-        }
-        ASSERT_TRUE(shader != 0);
-        *outShader = shader;
-    }
-
-    void CLinuxRendererGLES::createProgram(const char* pVertexSource, const char* pFragmentSource, GLuint* outPgm) 
-    {
-        CLog::Log(LOGDEBUG, ">>>createProgram\n");
-        GLuint vertexShader, fragmentShader;
-        {
-            loadShader(GL_VERTEX_SHADER, pVertexSource, &vertexShader);
-        }
-        {
-            loadShader(GL_FRAGMENT_SHADER, pFragmentSource, &fragmentShader);
-        }
-
-        GLuint program = glCreateProgram();
-        ASSERT_EQ(GLenum(GL_NO_ERROR), glGetError());
-        if (program) {
-            glAttachShader(program, vertexShader);
-            ASSERT_EQ(GLenum(GL_NO_ERROR), glGetError());
-            glAttachShader(program, fragmentShader);
-            ASSERT_EQ(GLenum(GL_NO_ERROR), glGetError());
-            glLinkProgram(program);
-            GLint linkStatus = GL_FALSE;
-            glGetProgramiv(program, GL_LINK_STATUS, &linkStatus);
-            if (linkStatus != GL_TRUE) {
-                GLint bufLength = 0;
-                glGetProgramiv(program, GL_INFO_LOG_LENGTH, &bufLength);
-                if (bufLength) {
-                    char* buf = (char*) malloc(bufLength);
-                    if (buf) {
-                        glGetProgramInfoLog(program, bufLength, NULL, buf);
-                        printf("Program link log:\n%s\n", buf);
-                        free(buf);
-                    }
-                }
-                glDeleteProgram(program);
-                program = 0;
-            }
-        }
-        glDeleteShader(vertexShader);
-        glDeleteShader(fragmentShader);
-        ASSERT_TRUE(program != 0);
-        *outPgm = program;
-    }
-
-    void CLinuxRendererGLES::OES_shader_setUp() 
-    {
-
-        const char vsrc[] =
-            "attribute vec4 vPosition;\n"
-            "varying vec2 texCoords;\n"
-            "uniform mat4 texMatrix;\n"
-            "void main() {\n"
-            "  vec2 vTexCoords = 0.5 * (vPosition.xy + vec2(1.0, 1.0));\n"
-            "  texCoords = (texMatrix * vec4(vTexCoords, 0.0, 1.0)).xy;\n"
-            "  gl_Position = vPosition;\n"
-            "}\n";
-
-        const char fsrc[] =
-            "#extension GL_OES_EGL_image_external : require\n"
-            "precision mediump float;\n"
-            "uniform samplerExternalOES texSampler;\n"
-            "varying vec2 texCoords;\n"
-            "void main() {\n"
-            "  gl_FragColor = texture2D(texSampler, texCoords);\n"
-            "}\n";
-
-        {
-            CLog::Log(LOGDEBUG, ">>>OES_shader_setUp\n");
-            while ((error = glGetError()) != GL_NO_ERROR) {
-                CLog::Log(LOGERROR, "clear error: %#04x", error);
-            }
-            createProgram(vsrc, fsrc, &mPgm);
-        }
-
-        mPositionHandle = glGetAttribLocation(mPgm, "vPosition");
-        ASSERT_EQ(GLenum(GL_NO_ERROR), glGetError());
-        ASSERT_NE(-1, mPositionHandle);
-        mTexSamplerHandle = glGetUniformLocation(mPgm, "texSampler");
-        ASSERT_EQ(GLenum(GL_NO_ERROR), glGetError());
-        ASSERT_NE(-1, mTexSamplerHandle);
-        mTexMatrixHandle = glGetUniformLocation(mPgm, "texMatrix");
-        ASSERT_EQ(GLenum(GL_NO_ERROR), glGetError());
-        ASSERT_NE(-1, mTexMatrixHandle);
-    }
-	
+#define ASSERT_TRUE(x) assert((x))	
 #endif
 
 using namespace Shaders;
@@ -328,7 +199,10 @@ bool CLinuxRendererGLES::ValidateRenderTarget()
       m_textureTarget = GL_TEXTURE_EXTERNAL_OES;
     }
     else
+    {
       CLog::Log(LOGNOTICE,"Using GL_TEXTURE_2D");
+      m_textureTarget = GL_TEXTURE_2D;
+    }
 
      // create the yuv textures
     LoadShaders();
@@ -826,7 +700,6 @@ void CLinuxRendererGLES::LoadShaders(int field)
       {
         CLog::Log(LOGNOTICE, "GL: Using ANDROID OES render method");
         m_renderMethod = RENDER_ANDOES;
-        OES_shader_setUp();
        break;
       }
       else if (m_format == RENDER_FMT_BYPASS)
@@ -1470,84 +1343,60 @@ void CLinuxRendererGLES::RenderAndroid(int index, int field)
   YUVPLANE &plane = m_buffers[index].fields[field][0];
 
   glDisable(GL_DEPTH_TEST);
- 
- /*
-void NativeWindowRenderer::calculatePositionCoordinates(
-        M4xVSS_MediaRendering renderingMode, int srcWidth, int srcHeight) {
-    float x, y;
-    switch (renderingMode) {
-        case M4xVSS_kResizing:
-        default:
-            x = 1;
-            y = 1;
-            break;
-        case M4xVSS_kCropping:
-            x = float(srcWidth) / mDstWidth;
-            y = float(srcHeight) / mDstHeight;
-            // Make the smaller side 1
-            if (x > y) {
-                x /= y;
-                y = 1;
-            } else {
-                y /= x;
-                x = 1;
-            }
-            break;
-        case M4xVSS_kBlackBorders:
-            x = float(srcWidth) / mDstWidth;
-            y = float(srcHeight) / mDstHeight;
-            // Make the larger side 1
-            if (x > y) {
-                y /= x;
-                x = 1;
-            } else {
-                x /= y;
-                y = 1;
-            }
-            break;
-    }
 
-    mPositionCoordinates[0] = -x;
-    mPositionCoordinates[1] = y;
-    mPositionCoordinates[2] = -x;
-    mPositionCoordinates[3] = -y;
-    mPositionCoordinates[4] = x;
-    mPositionCoordinates[5] = -y;
-    mPositionCoordinates[6] = x;
-    mPositionCoordinates[7] = y;
-}
-*/ 
-  const GLfloat triangleVertices[] = {
-    -1.0f, 1.0f,
-    -1.0f, -1.0f,
-    1.0f, -1.0f,
-    1.0f, 1.0f,
-  };
+  g_Windowing.EnableGUIShader(SM_TEXTURE_OES);
 
-  glVertexAttribPointer(mPositionHandle, 2, GL_FLOAT, GL_FALSE, 0,
-          triangleVertices);
-  glEnableVertexAttribArray(mPositionHandle);
+  GLubyte idx[4] = {0, 1, 3, 2};        //determines order of triangle strip
+  GLfloat ver[4][4];
+  GLfloat tex[4][2];
+  float col[4][3];
+
+  for (int index = 0;index < 4;++index)
+  {
+    col[index][0] = col[index][1] = col[index][2] = 1.0;
+  }
+
+  GLint   posLoc = g_Windowing.GUIShaderGetPos();
+  GLint   texLoc = g_Windowing.GUIShaderGetCoord0();
+  GLint   colLoc = g_Windowing.GUIShaderGetCol();
+
+  glVertexAttribPointer(posLoc, 4, GL_FLOAT, 0, 0, ver);
+  glVertexAttribPointer(texLoc, 2, GL_FLOAT, 0, 0, tex);
+  glVertexAttribPointer(colLoc, 3, GL_FLOAT, 0, 0, col);
+
+  glEnableVertexAttribArray(posLoc);
+  glEnableVertexAttribArray(texLoc);
+  glEnableVertexAttribArray(colLoc);
+
+  // Set vertex coordinates
+  for(int i = 0; i < 4; i++)
+  {
+    ver[i][0] = m_rotatedDestCoords[i].x;
+    ver[i][1] = m_rotatedDestCoords[i].y;
+    ver[i][2] = 0.0f;// set z to 0
+    ver[i][3] = 1.0f;
+  }
+
+  // Set texture coordinates
+  tex[0][0] = tex[3][0] = 0;
+  tex[0][1] = tex[1][1] = 0;
+  tex[1][0] = tex[2][0] = 1;
+  tex[2][1] = tex[3][1] = 1;
+
+  glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_BYTE, idx);
+
+  glDisableVertexAttribArray(posLoc);
+  glDisableVertexAttribArray(texLoc);
+  glDisableVertexAttribArray(colLoc);
+
+  g_Windowing.DisableGUIShader();
+
   VerifyGLState();
 
-  glUseProgram(mPgm);
-  glUniform1i(mTexSamplerHandle, 0);
-  VerifyGLState();
-
-  GLfloat texMatrix[16] = {
-    1, 0, 0, 0,
-    0, -1, 0, 0,
-    0, 0, 1, 0,
-    0, 1, 0, 1,
-  };
-  glUniformMatrix4fv(mTexMatrixHandle, 1, GL_FALSE, texMatrix);
- 
-  glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
-  VerifyGLState();
-  
   glDeleteTextures(1, &plane.id);
   glDisable(m_textureTarget);
   VerifyGLState();
-  
+    
   CLog::Log(LOGDEBUG, ">>> tm:%d\n", XbmcThreads::SystemClockMillis() - time);
 #endif
 }
