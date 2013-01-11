@@ -41,8 +41,6 @@
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 #include <ui/GraphicBuffer.h>
-#include <gui/SurfaceTexture.h>
-#include <gui/SurfaceTextureClient.h>
 
 #include <new>
 #include <map>
@@ -52,6 +50,22 @@
 #define STAGEFRIGHT_DEBUG_VERBOSE 1
 #define CLASSNAME "CStageFrightVideo"
 #define MINBUFIN 50
+
+// EGL extension functions
+static PFNEGLCREATEIMAGEKHRPROC eglCreateImageKHR;
+static PFNEGLDESTROYIMAGEKHRPROC eglDestroyImageKHR;
+#define GETEXTENSION(type, ext) \
+do \
+{ \
+    ext = (type) eglGetProcAddress(#ext); \
+    if (!ext) \
+    { \
+        CLog::Log(LOGERROR, "CLinuxRendererGLES::%s - ERROR getting proc addr of " #ext "\n", __func__); \
+    } \
+} while (0);
+
+#define EGL_NATIVE_BUFFER_ANDROID 0x3140
+#define EGL_IMAGE_PRESERVED_KHR   0x30D2
 
 const char *MEDIA_MIMETYPE_VIDEO_WMV  = "video/x-ms-wmv";
 
@@ -103,6 +117,7 @@ public:
   sp<MetaData> meta;
   sp<MediaSource> source;
   List<Frame*> in_queue;
+  std::map<EGLImageKHR, MediaBuffer*> out_map;
   pthread_mutex_t in_mutex;
   pthread_cond_t condition;
   
@@ -325,6 +340,15 @@ bool CStageFrightVideo::Open(CDVDStreamInfo &hints)
   
   m_context->client->disconnect();
 
+  if (!eglCreateImageKHR)
+  {
+    GETEXTENSION(PFNEGLCREATEIMAGEKHRPROC,  eglCreateImageKHR);
+  }
+  if (!eglDestroyImageKHR)
+  {
+    GETEXTENSION(PFNEGLDESTROYIMAGEKHRPROC, eglDestroyImageKHR);
+  }
+
   return true;
 
 fail:
@@ -513,10 +537,12 @@ bool CStageFrightVideo::ClearPicture(DVDVideoPicture* pDvdVideoPicture)
 #endif
   if (m_context->prev_frame) {
     if (m_context->prev_frame->medbuf)
+    {
       if (pDvdVideoPicture->format == RENDER_FMT_ANDOES)
-          ReleaseOutputBuffer(m_context->prev_frame->medbuf);
-       else
+        ReleaseOutputBuffer(pDvdVideoPicture->eglimg);
+      else
         m_context->prev_frame->medbuf->release();
+    }
     free(m_context->prev_frame);
     m_context->prev_frame = NULL;
   }
@@ -559,14 +585,30 @@ bool CStageFrightVideo::GetPicture(DVDVideoPicture* pDvdVideoPicture)
   pDvdVideoPicture->iDisplayHeight = frame->height;
   pDvdVideoPicture->iFlags  = DVP_FLAG_ALLOCATED;
   pDvdVideoPicture->pts = pts_itod(frame->pts);
-  pDvdVideoPicture->medbuf = NULL;
+  pDvdVideoPicture->eglimg = EGL_NO_IMAGE_KHR;
   
   if (frame->medbuf)
   {
     if (frame->medbuf->graphicBuffer() != 0)
     {
       pDvdVideoPicture->format = RENDER_FMT_ANDOES;
-      pDvdVideoPicture->medbuf = frame->medbuf;
+	  
+      android::GraphicBuffer* gb = static_cast<android::GraphicBuffer*>( frame->medbuf->graphicBuffer().get() );
+      EGLint eglImgAttrs[] = { EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_NONE };
+      pDvdVideoPicture->eglimg = eglCreateImageKHR(eglGetDisplay(EGL_DEFAULT_DISPLAY), EGL_NO_CONTEXT,
+                                  EGL_NATIVE_BUFFER_ANDROID,
+                                  (EGLClientBuffer)gb->getNativeBuffer(),
+                                  eglImgAttrs);
+      if (pDvdVideoPicture->eglimg == EGL_NO_IMAGE_KHR)
+      {
+        frame->medbuf->release();
+        pDvdVideoPicture->iFlags |= DVP_FLAG_DROPPED;
+      }
+      else
+      {
+        m_context->out_map.insert( std::pair<EGLImageKHR, MediaBuffer*>(pDvdVideoPicture->eglimg, frame->medbuf) );
+        pDvdVideoPicture->stf = this;
+      }
       
     #if defined(STAGEFRIGHT_DEBUG_VERBOSE)
       CLog::Log(LOGDEBUG, ">>> pic pts:%f, textured, tm:%d\n", pDvdVideoPicture->pts, XbmcThreads::SystemClockMillis() - time);
@@ -641,18 +683,18 @@ void CStageFrightVideo::Close()
     free(frame);
   }
 
+  std::map<EGLImageKHR, MediaBuffer*>::iterator it;
+  while (!m_context->out_map.empty())
+  {
+    it = m_context->out_map.begin();
+    it->second->release();
+    m_context->out_map.erase(it);
+  }
+
   if (m_context->cur_frame)
-  {
-    if (m_context->cur_frame->medbuf)
-      m_context->cur_frame->medbuf->release();
     free(m_context->cur_frame);
-  }
   if (m_context->prev_frame)
-  {
-    if (m_context->prev_frame->medbuf)
-      m_context->prev_frame->medbuf->release();
     free(m_context->prev_frame);
-  }
 
   m_context->decoder->stop();
   m_context->client->disconnect();
@@ -688,20 +730,34 @@ void CStageFrightVideo::SetDropState(bool bDrop)
 
 /***********************************************/
 
-void CStageFrightVideo::ReleaseOutputBuffer(MediaBuffer* medbuf)
+void CStageFrightVideo::LockOutputBuffer(EGLImageKHR eglimg)
 {
-#if defined(STAGEFRIGHT_DEBUG_VERBOSE)
-  CLog::Log(LOGDEBUG, "%s::ReleaseOutputBuffer(%d)\n", CLASSNAME, medbuf->refcount());
-#endif
-/*
-  if (medbuf->refcount() <= 2)
+  std::map<EGLImageKHR, MediaBuffer*>::iterator it;
+  it = m_context->out_map.find(eglimg);
+ 
+ if (it != m_context->out_map.end())
+    it->second->add_ref();
+  else
+    CLog::Log(LOGERROR, "%s::LockOutputBuffer: EGL image not found\n", CLASSNAME);
+}
+
+void CStageFrightVideo::ReleaseOutputBuffer(EGLImageKHR eglimg)
+{
+  std::map<EGLImageKHR, MediaBuffer*>::iterator it;
+  it = m_context->out_map.find(eglimg);
+
+  if (it != m_context->out_map.end())
   {
-    android::GraphicBuffer* graphicBuffer = static_cast<android::GraphicBuffer*>(medbuf->graphicBuffer().get() );
-    ANativeWindow* nativeWindow = static_cast<ANativeWindow*>(g_xbmcapp.GetAndroidVideoWindow().get());
-    int err = nativeWindow->queueBuffer(nativeWindow, graphicBuffer);   
-    if (err == 0)
-      medbuf->meta_data()->setInt32(kKeyRendered, 1);
+    if(it->second->refcount() > 1)
+    {
+      it->second->release();
+      return;
+    }
+      
+    eglDestroyImageKHR(eglGetDisplay(EGL_DEFAULT_DISPLAY), it->first);
+    it->second->release();
+    m_context->out_map.erase(it);
   }
-  */
-  medbuf->release();
+  else
+    CLog::Log(LOGERROR, "%s::ReleaseOutputBuffer: EGL image not found\n", CLASSNAME);
 }

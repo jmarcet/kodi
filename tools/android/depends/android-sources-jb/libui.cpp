@@ -23,7 +23,9 @@
 
 using namespace android;
 
-EGLNativeWindowType android_createDisplaySurface(void) {}
+status_t GraphicBuffer::unlock() {}
+
+status_t GraphicBuffer::lock(unsigned int, android::Rect const&, void**) {}
 
 ANativeWindowBuffer* GraphicBuffer::getNativeBuffer() const
 {

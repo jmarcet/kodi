@@ -24,10 +24,7 @@
 #include <string>
 #include <vector>
 
-#ifdef HAVE_LIBSTAGEFRIGHT
-#include <gui/SurfaceTexture.h>
-#include <gui/SurfaceTextureClient.h>
-#endif
+#include <system/window.h>
 #include <android/native_activity.h>
 
 #include "IActivityHandler.h"
@@ -35,6 +32,10 @@
 
 #include "xbmc.h"
 #include "utils/GlobalsHandling.h"
+
+#ifdef HAVE_LIBSTAGEFRIGHT
+#include <utils/StrongPointer.h>
+#endif
 
 // forward delares
 class CAESinkAUDIOTRACK;
@@ -106,11 +107,8 @@ public:
 #ifdef HAVE_LIBSTAGEFRIGHT
   bool InitStagefrightSurface();
   void UninitStagefrightSurface();
-  void UpdateStagefrightSurface();
-  void GetStagefrightTransformMatrix(float*);
 
   const android::sp<ANativeWindow>& GetAndroidVideoWindow() const { return m_VideoNativeWindow;}
-  const android::sp<android::SurfaceTexture>& GetAndroidSurfaceTexture() const { return m_SurfaceTexture;}
 #endif
 
 protected:
@@ -167,10 +165,7 @@ private:
   static ANativeWindow* m_window;
 #ifdef HAVE_LIBSTAGEFRIGHT
   jobject m_SurfTexture;
-  jmethodID m_midUpdateTexImage;
-  jmethodID m_midGetTransformMatrix;
   android::sp<ANativeWindow> m_VideoNativeWindow;
-  android::sp<android::SurfaceTexture> m_SurfaceTexture;
 #endif
   
   void XBMC_Pause(bool pause);

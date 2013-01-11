@@ -992,12 +992,12 @@ bool CXBMCApp::InitStagefrightSurface()
 
   jclass cSurfaceTexture = env->FindClass("android/graphics/SurfaceTexture");
   jmethodID midSurfaceTextureCtor = env->GetMethodID(cSurfaceTexture, "<init>", "(I)V");
-  m_midUpdateTexImage = env->GetMethodID(cSurfaceTexture, "updateTexImage", "()V");
-  m_midGetTransformMatrix  = env->GetMethodID(cSurfaceTexture, "getTransformMatrix", "([F)V");
+  //m_midUpdateTexImage = env->GetMethodID(cSurfaceTexture, "updateTexImage", "()V");
+  //m_midGetTransformMatrix  = env->GetMethodID(cSurfaceTexture, "getTransformMatrix", "([F)V");
   jobject oSurfTexture = env->NewObject(cSurfaceTexture, midSurfaceTextureCtor, 0);
   
-  jfieldID fidSurfaceTexture = env->GetFieldID(cSurfaceTexture, ANDROID_GRAPHICS_SURFACETEXTURE_JNI_ID, "I");
-  m_SurfaceTexture = (android::SurfaceTexture*)env->GetIntField(oSurfTexture, fidSurfaceTexture);
+  //jfieldID fidSurfaceTexture = env->GetFieldID(cSurfaceTexture, ANDROID_GRAPHICS_SURFACETEXTURE_JNI_ID, "I");
+  //m_SurfaceTexture = (android::SurfaceTexture*)env->GetIntField(oSurfTexture, fidSurfaceTexture);
   
   env->DeleteLocalRef(cSurfaceTexture);
   m_SurfTexture = env->NewGlobalRef(oSurfTexture);
@@ -1027,8 +1027,6 @@ void CXBMCApp::UninitStagefrightSurface()
   ANativeWindow_release(m_VideoNativeWindow.get());
   m_VideoNativeWindow.clear();
   m_VideoNativeWindow = NULL;
-  m_SurfaceTexture.clear();
-  m_SurfaceTexture = NULL;
   
   jclass cSurfaceTexture = env->GetObjectClass(m_SurfTexture);
   jmethodID midSurfaceTextureRelease = env->GetMethodID(cSurfaceTexture, "release", "()V");
@@ -1038,15 +1036,5 @@ void CXBMCApp::UninitStagefrightSurface()
 
   DetachCurrentThread();
 
-}
-
-void CXBMCApp::UpdateStagefrightSurface()
-{
-  m_SurfaceTexture->updateTexImage();
-}
-
-void CXBMCApp::GetStagefrightTransformMatrix(float* transformMatrix)
-{
-  m_SurfaceTexture->getTransformMatrix(transformMatrix);
 }
 #endif

@@ -60,6 +60,9 @@
 #include "osx/DarwinUtils.h"
 #endif
 #if defined(HAVE_LIBSTAGEFRIGHT)
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
+#include <ui/GraphicBuffer.h>
 #include "android/activity/XBMCApp.h"
 #include "DVDCodecs/Video/StageFrightVideo.h"
 #include <media/stagefright/MediaBufferGroup.h>
@@ -241,7 +244,7 @@ CLinuxRendererGLES::CLinuxRendererGLES()
     m_buffers[i].cvBufferRef = NULL;
 #endif
 #if defined(HAVE_LIBSTAGEFRIGHT)
-    m_buffers[i].medbuf = NULL;
+    m_buffers[i].eglimg = EGL_NO_IMAGE_KHR;
 #endif
   }
 
@@ -1542,10 +1545,9 @@ void NativeWindowRenderer::calculatePositionCoordinates(
   VerifyGLState();
   
   glDeleteTextures(1, &plane.id);
-
   glDisable(m_textureTarget);
   VerifyGLState();
-
+  
   CLog::Log(LOGDEBUG, ">>> tm:%d\n", XbmcThreads::SystemClockMillis() - time);
 #endif
 }
@@ -2144,31 +2146,13 @@ void CLinuxRendererGLES::UploadANDOESTexture(int index)
 
   int glerr;
 
-  android::MediaBuffer* mb = m_buffers[index].medbuf;
-  android::GraphicBuffer* gb = static_cast<android::GraphicBuffer*>(mb->graphicBuffer().get() );
-
-  if (!gb)
-    return;
-
-  EGLint eglImgAttrs[] = { EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_NONE };
-  EGLImageKHR  eglimg = eglCreateImageKHR(eglGetDisplay(EGL_DEFAULT_DISPLAY), EGL_NO_CONTEXT,
-                                  EGL_NATIVE_BUFFER_ANDROID,
-                                  (EGLClientBuffer)gb->getNativeBuffer(),
-                                  eglImgAttrs);
-  if (eglimg == EGL_NO_IMAGE_KHR) {
-    while ((glerr = glGetError()) != GL_NO_ERROR) {
-      CLog::Log(LOGERROR, ">>> error creating EGLImage: %#x", glerr);
-    }
-  }
   while ((glerr = glGetError()) != GL_NO_ERROR) {
     CLog::Log(LOGERROR, ">>> clear glerror: %#x", glerr);
   }
 
-  glEGLImageTargetTexture2DOES(m_textureTarget, (GLeglImageOES)eglimg);
+  glEGLImageTargetTexture2DOES(m_textureTarget, (GLeglImageOES)m_buffers[index].eglimg);
   VerifyGLState();
   
-  eglDestroyImageKHR(eglGetDisplay(EGL_DEFAULT_DISPLAY), eglimg);
-
   plane.flipindex = m_buffers[index].flipindex;
 
   m_eventTexturesDone[index]->Set();
@@ -2177,19 +2161,9 @@ void CLinuxRendererGLES::UploadANDOESTexture(int index)
 void CLinuxRendererGLES::DeleteANDOESTexture(int index)
 {
 #ifdef HAVE_LIBSTAGEFRIGHT
-  YUVPLANE &plane = m_buffers[index].fields[0][0];
-
-  if (m_buffers[index].medbuf)
-  {
-    if (m_buffers[index].medbuf->refcount() > 1)
-      m_buffers[index].medbuf->release();
-    CStageFrightVideo::ReleaseOutputBuffer(m_buffers[index].medbuf);
-  }
-  m_buffers[index].medbuf = NULL;
-
-  if(plane.id && glIsTexture(plane.id))
-    glDeleteTextures(1, &plane.id);
-  plane.id = 0;
+  if (m_buffers[index].eglimg != EGL_NO_IMAGE_KHR)
+    eglDestroyImageKHR(eglGetDisplay(EGL_DEFAULT_DISPLAY), m_buffers[index].eglimg);
+  m_buffers[index].eglimg = EGL_NO_IMAGE_KHR;
 #endif
 }
 bool CLinuxRendererGLES::CreateANDOESTexture(int index)
@@ -2394,18 +2368,14 @@ void CLinuxRendererGLES::AddProcessor(struct __CVBuffer *cvBufferRef)
 }
 #endif
 #ifdef HAVE_LIBSTAGEFRIGHT
-void CLinuxRendererGLES::AddProcessor(android::MediaBuffer* medbuf)
+void CLinuxRendererGLES::AddProcessor(CStageFrightVideo* stf, EGLImageKHR eglimg)
 {
   YUVBUFFER &buf = m_buffers[NextYV12Texture()];
-  if (buf.medbuf)
-  {
-    if (buf.medbuf->refcount() > 1)
-      buf.medbuf->release();
-    CStageFrightVideo::ReleaseOutputBuffer(buf.medbuf);
-  }
-  buf.medbuf = medbuf;
-  buf.medbuf->add_ref();
+  if (buf.eglimg != EGL_NO_IMAGE_KHR)
+    stf->ReleaseOutputBuffer(buf.eglimg);
 
+  stf->LockOutputBuffer(eglimg);
+  buf.eglimg = eglimg;
 }
 #endif
 

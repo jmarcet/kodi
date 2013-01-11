@@ -42,8 +42,9 @@ public:
   bool ClearPicture(DVDVideoPicture* pDvdVideoPicture);
   void SetDropState(bool bDrop);
   
-  static void ReleaseOutputBuffer(android::MediaBuffer* medbuf);
-  
+  void LockOutputBuffer(EGLImageKHR eglimg);
+  void ReleaseOutputBuffer(EGLImageKHR eglimg);
+
 private:
   StagefrightContext* m_context;
 };

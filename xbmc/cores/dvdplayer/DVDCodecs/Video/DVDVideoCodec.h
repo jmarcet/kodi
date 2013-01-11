@@ -24,6 +24,10 @@
 
 #include <vector>
 #include "cores/VideoRenderers/RenderFormats.h"
+#ifdef HAVE_LIBSTAGEFRIGHT
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
+#endif
 
 // when modifying these structures, make sure you update all codecs accordingly
 #define FRAME_TYPE_UNDEF 0
@@ -38,9 +42,7 @@ class CVDPAU;
 class COpenMax;
 class COpenMaxVideo;
 struct OpenMaxVideoBuffer;
-#ifdef HAVE_LIBSTAGEFRIGHT
-namespace android { class MediaBuffer; }
-#endif
+class CStageFrightVideo;
 
 // should be entirely filled by all codecs
 struct DVDVideoPicture
@@ -75,7 +77,8 @@ struct DVDVideoPicture
     
 #ifdef HAVE_LIBSTAGEFRIGHT
     struct {
-      android::MediaBuffer* medbuf;
+      CStageFrightVideo* stf;
+      EGLImageKHR eglimg;
     };
 #endif
   };
