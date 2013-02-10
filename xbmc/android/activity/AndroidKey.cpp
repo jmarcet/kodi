@@ -23,6 +23,8 @@
 #include "guilib/Key.h"
 #include "windowing/WinEvents.h"
 
+#include "AndroidExtra.h"
+
 static KeyMap keyMap[] = {
   { AKEYCODE_UNKNOWN         , XBMCK_LAST },
   { AKEYCODE_SOFT_LEFT       , XBMCK_LEFT },
