@@ -1,6 +1,5 @@
-#pragma once
 /*
- *      Copyright (C) 2012-2013 Team XBMC
+ *      Copyright (C) 2013 Team XBMC
  *      http://www.xbmc.org
  *
  *  This Program is free software; you can redistribute it and/or modify
@@ -19,15 +18,23 @@
  *
  */
 
-#include "AndroidTouch.h"
-#include "AndroidKey.h"
-#include "AndroidMouse.h"
-#include "AndroidJoystick.h"
+#pragma once
 
-class IInputHandler : public CAndroidTouch, public CAndroidKey, public CAndroidMouse, public CAndroidJoystick
+#include "input/IJoystick.h"
+
+#include <string>
+
+class CLinuxJoystickAndroid : public IJoystick
 {
 public:
-  IInputHandler() : CAndroidTouch(), CAndroidKey(), CAndroidMouse(), CAndroidJoystick() {}
+  virtual ~CLinuxJoystickAndroid();
 
-  virtual void setDPI(uint32_t dpi) { CAndroidTouch::setDPI(dpi); }
+  static void Initialize(JoystickArray &joysticks);
+  static void DeInitialize(JoystickArray &joysticks);
+
+  virtual void Update();
+  virtual const SJoystick &GetState() const { return m_state; }
+
+private:
+  SJoystick   m_state;
 };

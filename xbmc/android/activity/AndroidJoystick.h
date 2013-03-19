@@ -19,15 +19,31 @@
  *
  */
 
-#include "AndroidTouch.h"
-#include "AndroidKey.h"
-#include "AndroidMouse.h"
-#include "AndroidJoystick.h"
+#include <stdint.h>
+#include <android/input.h>
 
-class IInputHandler : public CAndroidTouch, public CAndroidKey, public CAndroidMouse, public CAndroidJoystick
+#include <string>
+#include <map>
+
+struct CAndroidJoystickDevice
+{
+  std::string name;
+  int32_t sources;
+  int32_t numaxis;
+  std::map<int32_t, float> axisvalues;
+};
+
+class CAndroidJoystick
 {
 public:
-  IInputHandler() : CAndroidTouch(), CAndroidKey(), CAndroidMouse(), CAndroidJoystick() {}
-
-  virtual void setDPI(uint32_t dpi) { CAndroidTouch::setDPI(dpi); }
+  CAndroidJoystick();
+  ~CAndroidJoystick();
+  bool onJoystickMoveEvent(AInputEvent* event);
+  bool onJoystickButtonEvent(AInputEvent* event);
+  
+protected:
+  std::map<int32_t, CAndroidJoystickDevice*>::iterator addJoystick(int32_t deviceid);
+  
+private:
+  std::map<int32_t, CAndroidJoystickDevice*> m_joysticks;
 };
