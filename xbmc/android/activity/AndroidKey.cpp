@@ -93,7 +93,7 @@ static KeyMap keyMap[] = {
   { AKEYCODE_EXPLORER        , XBMCK_LAST },
   { AKEYCODE_ENVELOPE        , XBMCK_LAST },
   { AKEYCODE_ENTER           , XBMCK_RETURN },
-  { AKEYCODE_DEL             , XBMCK_DELETE },
+  { AKEYCODE_DEL             , XBMCK_BACKSPACE },
   { AKEYCODE_GRAVE           , XBMCK_BACKQUOTE },
   { AKEYCODE_MINUS           , XBMCK_MINUS },
   { AKEYCODE_EQUALS          , XBMCK_EQUALS },
@@ -136,7 +136,9 @@ static KeyMap keyMap[] = {
   { AKEYCODE_BUTTON_THUMBR   , XBMCK_LAST },
   { AKEYCODE_BUTTON_START    , XBMCK_LAST },
   { AKEYCODE_BUTTON_SELECT   , XBMCK_LAST },
-  { AKEYCODE_BUTTON_MODE     , XBMCK_LAST }
+  { AKEYCODE_BUTTON_MODE     , XBMCK_LAST },
+  { AKEYCODE_ESCAPE          , XBMCK_ESCAPE },
+  { AKEYCODE_FORWARD_DEL     , XBMCK_DELETE }
 };
 
 bool CAndroidKey::onKeyboardEvent(AInputEvent* event)
