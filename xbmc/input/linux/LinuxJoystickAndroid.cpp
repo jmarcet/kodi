@@ -23,6 +23,10 @@
 #include "android/activity/JNIThreading.h"
 #include "android/activity/AndroidExtra.h"
 
+#include "utils/log.h"
+
+std::map<int32_t, CLinuxJoystickAndroid*> CLinuxJoystickAndroid::m_joysticks;
+
 CLinuxJoystickAndroid::~CLinuxJoystickAndroid()
 {
 }
@@ -32,12 +36,18 @@ void CLinuxJoystickAndroid::Initialize(JoystickArray &joysticks)
 {
   JNIEnv* env = xbmc_jnienv();
   
-  jclass cInputDevice = env->FindClass("android/view/InputDevice");
+  CLog::Log(LOGDEBUG, "CLinuxJoystickAndroid::Initialize");
+
+    jclass cInputDevice = env->FindClass("android/view/InputDevice");
   jmethodID midGetDeviceIds = env->GetStaticMethodID(cInputDevice, "getDeviceIds", "()[I");
   jmethodID midGetDevice = env->GetStaticMethodID(cInputDevice, "getDevice", "(I)Landroid/view/InputDevice;");
   jmethodID midGetName = env->GetMethodID(cInputDevice, "getName", "()Ljava/lang/String;");
   jmethodID midGetSources = env->GetMethodID(cInputDevice, "getSources", "()I");
   jmethodID midGetMotionRanges = env->GetMethodID(cInputDevice, "getMotionRanges", "()Ljava/util/List;");
+
+  jclass cList = env->FindClass("java/util/List");
+  jmethodID midListSize = env->GetMethodID(cList, "size", "()I");
+  jmethodID midListGet = env->GetMethodID(cList, "get", "(I)Ljava/lang/Object;");
 
   jintArray retarr = (jintArray) env->CallStaticObjectMethod(cInputDevice, midGetDeviceIds);
   jsize len = env->GetArrayLength(retarr);
@@ -46,23 +56,54 @@ void CLinuxJoystickAndroid::Initialize(JoystickArray &joysticks)
   {
     jobject oInputDevice = env->CallStaticObjectMethod(cInputDevice, midGetDevice, ids[i]);
     int sources = env->CallIntMethod(oInputDevice, midGetSources);
-    env->DeleteLocalRef(oInputDevice);
+
+    jstring sDeviceName = (jstring)env->CallObjectMethod(oInputDevice, midGetName);
+    const char *nativeString = env->GetStringUTFChars(sDeviceName, 0);
+    std::string name = std::string(nativeString);
+    env->ReleaseStringUTFChars(sDeviceName, nativeString);
+    env->DeleteLocalRef(sDeviceName);
+
+    CLog::Log(LOGDEBUG, ">> Input device detected: %s; id:%d, types: %d", name.c_str(), ids[i], sources);
     
     if (sources & AINPUT_SOURCE_GAMEPAD || sources & AINPUT_SOURCE_JOYSTICK)
     {
       CLinuxJoystickAndroid* joy = new CLinuxJoystickAndroid();
       joy->m_state.id = ids[i];
+      joy->m_state.name = name;
+      joy->m_state.buttonCount = GAMEPAD_BUTTON_COUNT;
+      joy->m_state.hatCount = 0;
+      joy->m_state.axisCount = 0;
+            
+      jobject oListMotionRanges = env->CallObjectMethod(oInputDevice, midGetMotionRanges);
+      int numaxis = env->CallIntMethod(oListMotionRanges, midListSize);
+
+      jclass cMotionRange = env->FindClass("android/view/InputDevice$MotionRange");
+      jmethodID midGetAxis = env->GetMethodID(cMotionRange, "getAxis", "()I");
+      jmethodID midGetSource = env->GetMethodID(cMotionRange, "getSource", "()I");
       
-      jstring sDeviceName = (jstring)env->CallObjectMethod(oInputDevice, midGetName);
-      const char *nativeString = env->GetStringUTFChars(sDeviceName, 0);
-      joy->m_state.name = std::string(nativeString);
-      env->ReleaseStringUTFChars(sDeviceName, nativeString);
-      env->DeleteLocalRef(sDeviceName);
+      for (int j=0; j<numaxis; ++j)
+      {
+        jobject oMotionRange = env->CallObjectMethod(oListMotionRanges, midListGet, j);
+        int axisId = env->CallIntMethod(oMotionRange, midGetAxis);
+        int src = env->CallIntMethod(oMotionRange, midGetSource);
+        env->DeleteLocalRef(oMotionRange);
+        
+        if (src & AINPUT_SOURCE_GAMEPAD || src & AINPUT_SOURCE_JOYSTICK)
+        {
+          joy->m_state.axisCount++;
+          CLog::Log(LOGDEBUG, ">>> added axis: %d; src: %d", axisId, src);
+        }
+      }
+      env->DeleteLocalRef(oListMotionRanges);
 
       joysticks.push_back(boost::shared_ptr<IJoystick>(joy));
+      CLinuxJoystickAndroid::m_joysticks.insert(std::pair<int32_t, CLinuxJoystickAndroid*>(ids[i], joy));
     }
+
+    env->DeleteLocalRef(oInputDevice);
   }
   
+  env->DeleteLocalRef(cList);
   env->DeleteLocalRef(retarr);
   env->DeleteLocalRef(cInputDevice);
 }
@@ -76,8 +117,33 @@ void CLinuxJoystickAndroid::DeInitialize(JoystickArray &joysticks)
       joysticks.erase(joysticks.begin() + i--);
     }
   }
+  CLinuxJoystickAndroid::clearJoysticks();
 }
 
 void CLinuxJoystickAndroid::Update()
 {
+}
+
+const SJoystick& CLinuxJoystickAndroid::GetState() const 
+{
+  return m_state; 
+}
+
+CLinuxJoystickAndroid* CLinuxJoystickAndroid::getJoystick(int32_t deviceid)
+{
+  std::map<int32_t, CLinuxJoystickAndroid*>::iterator it = CLinuxJoystickAndroid::m_joysticks.find(deviceid);
+  if (it == CLinuxJoystickAndroid::m_joysticks.end())
+    return NULL;
+    
+  return it->second;
+}
+
+void CLinuxJoystickAndroid::clearJoysticks()
+{
+  std::map<int32_t, CLinuxJoystickAndroid*>::iterator it;
+  while (!CLinuxJoystickAndroid::m_joysticks.empty())
+  {
+    it = CLinuxJoystickAndroid::m_joysticks.begin();
+    CLinuxJoystickAndroid::m_joysticks.erase(it);
+  }
 }

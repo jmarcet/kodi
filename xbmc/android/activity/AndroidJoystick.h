@@ -25,14 +25,6 @@
 #include <string>
 #include <map>
 
-struct CAndroidJoystickDevice
-{
-  std::string name;
-  int32_t sources;
-  int32_t numaxis;
-  std::map<int32_t, float> axisvalues;
-};
-
 class CAndroidJoystick
 {
 public:
@@ -40,10 +32,4 @@ public:
   ~CAndroidJoystick();
   bool onJoystickMoveEvent(AInputEvent* event);
   bool onJoystickButtonEvent(AInputEvent* event);
-  
-protected:
-  std::map<int32_t, CAndroidJoystickDevice*>::iterator addJoystick(int32_t deviceid);
-  
-private:
-  std::map<int32_t, CAndroidJoystickDevice*> m_joysticks;
 };

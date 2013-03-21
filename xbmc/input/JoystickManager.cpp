@@ -26,11 +26,14 @@
 #include "ButtonTranslator.h"
 #include "utils/log.h"
 #include "MouseStat.h"
+#include "guilib/Key.h"
 
 // Include joystick APIs
 #if defined(TARGET_WINDOWS)
 #include "input/windows/WINJoystickXInput.h"
 #include "input/windows/WINJoystickDX.h"
+#elif defined(TARGET_ANDROID)
+#include "input/linux/LinuxJoystickAndroid.h"
 #elif defined(TARGET_LINUX)
 #include "input/linux/LinuxJoystick.h"
 #endif // TARGET_LINUX
@@ -61,6 +64,8 @@ void CJoystickManager::Initialize()
 #if defined(TARGET_WINDOWS)
   CJoystickXInput::Initialize(m_joysticks);
   CJoystickDX::Initialize(m_joysticks);
+#elif defined(TARGET_ANDROID)
+  CLinuxJoystickAndroid::Initialize(m_joysticks);
 #elif defined(TARGET_LINUX)
   CLinuxJoystick::Initialize(m_joysticks);
 #endif // TARGET_LINUX
@@ -78,6 +83,8 @@ void CJoystickManager::DeInitialize()
 #if defined(TARGET_WINDOWS)
   CJoystickXInput::DeInitialize(m_joysticks);
   CJoystickDX::DeInitialize(m_joysticks);
+#elif defined(TARGET_ANDROID)
+  CLinuxJoystickAndroid::DeInitialize(m_joysticks);
 #elif defined(TARGET_LINUX)
   CLinuxJoystick::DeInitialize(m_joysticks);
 #endif // TARGET_LINUX

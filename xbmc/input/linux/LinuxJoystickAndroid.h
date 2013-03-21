@@ -23,9 +23,12 @@
 #include "input/IJoystick.h"
 
 #include <string>
+#include <map>
 
 class CLinuxJoystickAndroid : public IJoystick
 {
+friend class CAndroidJoystick;
+
 public:
   virtual ~CLinuxJoystickAndroid();
 
@@ -33,8 +36,12 @@ public:
   static void DeInitialize(JoystickArray &joysticks);
 
   virtual void Update();
-  virtual const SJoystick &GetState() const { return m_state; }
+  virtual const SJoystick &GetState() const;
 
+  static CLinuxJoystickAndroid* getJoystick(int32_t deviceid);
+  static void clearJoysticks();
+  
 private:
   SJoystick   m_state;
+  static std::map<int32_t, CLinuxJoystickAndroid*> m_joysticks;
 };
