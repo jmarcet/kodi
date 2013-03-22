@@ -527,11 +527,11 @@ bool CApplication::OnEvent(XBMC_Event& newEvent)
       int actionId = 0;
       if (newEvent.touch.action == ACTION_GESTURE_BEGIN || newEvent.touch.action == ACTION_GESTURE_END)
         actionId = newEvent.touch.action;
-      else if (!CButtonTranslator::GetInstance().TranslateTouchAction(windowId, newEvent.touch.action, newEvent.touch.pointers, actionId) ||
+      else if (!CButtonTranslator::GetInstance().TranslateTouchAction(newEvent.touch.action, newEvent.touch.pointers, windowId, actionId) ||
           actionId <= 0)
         return false;
 
-      CApplicationMessenger::Get().SendAction(CAction(actionId, 0, newEvent.touch.x, newEvent.touch.y, newEvent.touch.x2, newEvent.touch.y2), WINDOW_INVALID, false);
+      CApplicationMessenger::Get().SendAction(CAction(actionId, 0, newEvent.touch.x, newEvent.touch.y, newEvent.touch.x2, newEvent.touch.y2), windowId, false);
       break;
     }
   }
