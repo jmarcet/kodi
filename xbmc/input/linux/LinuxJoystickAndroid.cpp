@@ -26,6 +26,7 @@
 #include "utils/log.h"
 
 std::map<int32_t, CLinuxJoystickAndroid*> CLinuxJoystickAndroid::m_joysticks;
+CCriticalSection joySection;
 
 CLinuxJoystickAndroid::~CLinuxJoystickAndroid()
 {
@@ -34,6 +35,8 @@ CLinuxJoystickAndroid::~CLinuxJoystickAndroid()
 /* static */
 void CLinuxJoystickAndroid::Initialize(JoystickArray &joysticks)
 {
+  CSingleLock lock(joySection);
+
   JNIEnv* env = xbmc_jnienv();
   
   CLog::Log(LOGDEBUG, "CLinuxJoystickAndroid::Initialize");
@@ -68,11 +71,11 @@ void CLinuxJoystickAndroid::Initialize(JoystickArray &joysticks)
     if (sources & AINPUT_SOURCE_GAMEPAD || sources & AINPUT_SOURCE_JOYSTICK)
     {
       CLinuxJoystickAndroid* joy = new CLinuxJoystickAndroid();
-      joy->m_state.id = ids[i];
-      joy->m_state.name = name;
-      joy->m_state.buttonCount = GAMEPAD_BUTTON_COUNT;
-      joy->m_state.hatCount = 0;
-      joy->m_state.axisCount = 0;
+      joy->m_state.id = joy->m_lastState.id = ids[i];
+      joy->m_state.name = joy->m_lastState.name = name;
+      joy->m_state.buttonCount = joy->m_lastState.buttonCount = GAMEPAD_BUTTON_COUNT;
+      joy->m_state.hatCount = joy->m_lastState.hatCount = 0;
+      joy->m_state.axisCount = joy->m_lastState.axisCount = 0;
             
       jobject oListMotionRanges = env->CallObjectMethod(oInputDevice, midGetMotionRanges);
       int numaxis = env->CallIntMethod(oListMotionRanges, midListSize);
@@ -88,9 +91,11 @@ void CLinuxJoystickAndroid::Initialize(JoystickArray &joysticks)
         int src = env->CallIntMethod(oMotionRange, midGetSource);
         env->DeleteLocalRef(oMotionRange);
         
-        if (src & AINPUT_SOURCE_GAMEPAD || src & AINPUT_SOURCE_JOYSTICK)
+        if (src & AINPUT_SOURCE_GAMEPAD || src & AINPUT_SOURCE_JOYSTICK && joy->m_state.axisCount < GAMEPAD_AXIS_COUNT)
         {
           joy->m_state.axisCount++;
+          joy->m_lastState.axisCount = joy->m_state.axisCount;
+          joy->m_axisIds[joy->m_state.axisCount-1] = axisId;
           CLog::Log(LOGDEBUG, ">>> added axis: %d; src: %d", axisId, src);
         }
       }
@@ -122,15 +127,27 @@ void CLinuxJoystickAndroid::DeInitialize(JoystickArray &joysticks)
 
 void CLinuxJoystickAndroid::Update()
 {
+  CSingleTryLock lock(m_critSection);
+  if (!lock.IsOwner())
+    return;
+
+  for (int i=0; i<m_state.buttonCount; ++i)
+    m_lastState.buttons[i] = m_state.buttons[i];
+  for (int i=0; i<m_state.hatCount; ++i)
+    m_lastState.hats[i] = m_state.hats[i];
+  for (int i=0; i<m_state.axisCount; ++i)
+    m_lastState.axes[i] = m_state.axes[i];
 }
 
 const SJoystick& CLinuxJoystickAndroid::GetState() const 
 {
-  return m_state; 
+  return m_lastState; 
 }
 
 CLinuxJoystickAndroid* CLinuxJoystickAndroid::getJoystick(int32_t deviceid)
 {
+  CSingleLock lock(joySection);
+
   std::map<int32_t, CLinuxJoystickAndroid*>::iterator it = CLinuxJoystickAndroid::m_joysticks.find(deviceid);
   if (it == CLinuxJoystickAndroid::m_joysticks.end())
     return NULL;
@@ -140,6 +157,8 @@ CLinuxJoystickAndroid* CLinuxJoystickAndroid::getJoystick(int32_t deviceid)
 
 void CLinuxJoystickAndroid::clearJoysticks()
 {
+  CSingleLock lock(joySection);
+
   std::map<int32_t, CLinuxJoystickAndroid*>::iterator it;
   while (!CLinuxJoystickAndroid::m_joysticks.empty())
   {

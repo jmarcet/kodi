@@ -36,6 +36,7 @@ static typeof(AMotionEvent_getAxisValue) *p_AMotionEvent_getAxisValue;
 CAndroidJoystick::CAndroidJoystick()
 {
   p_AMotionEvent_getAxisValue = (typeof(AMotionEvent_getAxisValue)*) dlsym(RTLD_DEFAULT, "AMotionEvent_getAxisValue");
+  CXBMCApp::android_printf("CAndroidJoystick: AMotionEvent_getAxisValue: %p", p_AMotionEvent_getAxisValue);
 }
 
 CAndroidJoystick::~CAndroidJoystick()
@@ -44,7 +45,6 @@ CAndroidJoystick::~CAndroidJoystick()
 
 bool CAndroidJoystick::onJoystickMoveEvent(AInputEvent* event)
 {
-  CXBMCApp::android_printf("%s", __PRETTY_FUNCTION__);
   if (event == NULL)
     return false;
 
@@ -56,16 +56,57 @@ bool CAndroidJoystick::onJoystickMoveEvent(AInputEvent* event)
     joy = CLinuxJoystickAndroid::getJoystick(deviceid);
   }
   if (joy == NULL)
-    return false;
+    return true;
     
   CXBMCApp::android_printf("CAndroidJoystick: move event (devname: %s; device:%d, src:%d)", joy->m_state.name.c_str(), deviceid, AInputEvent_getSource(event));
+
+  for (int i=0; i<joy->m_state.axisCount; ++i)
+  {
+    // Map axis ID to XBMC axis ID (Based upon xbox 360 mapping)
+    int32_t xbmcAxis = i;
+    float val = AMotionEvent_getAxisValue(event, joy->m_axisIds[i], 0);
+    switch (joy->m_axisIds[i])
+    {
+      case AMOTION_EVENT_AXIS_X:
+        xbmcAxis = 1;
+        break;
+
+      case AMOTION_EVENT_AXIS_Y:
+        xbmcAxis = 2;
+        break;
+
+      case AMOTION_EVENT_AXIS_LTRIGGER:
+        xbmcAxis = 3;
+        break;
+
+      case AMOTION_EVENT_AXIS_RTRIGGER:
+        xbmcAxis = 3;
+        val = -val;
+        break;
+        
+      case AMOTION_EVENT_AXIS_Z:
+        xbmcAxis = 4;
+        break;
+
+      case AMOTION_EVENT_AXIS_RZ:
+        xbmcAxis = 5;
+        break;
+    }
+    if (fabs(val) < 0.25)
+      val = 0.0;
+    if (val != joy->m_state.axes[xbmcAxis-1])
+    {
+      CSingleLock lock(joy->m_critSection);
+      joy->m_state.axes[xbmcAxis-1] = val;
+      // CXBMCApp::android_printf(">> axisId: %d; xbmcAxid: %d; val: %f", joy->m_axisIds[i], xbmcAxis, joy->m_state.axes[i]);
+    }
+  }
 
   return true;
 }
 
 bool CAndroidJoystick::onJoystickButtonEvent(AInputEvent* event)
 {
-  CXBMCApp::android_printf("%s", __PRETTY_FUNCTION__);
   if (event == NULL)
     return false;
 
@@ -77,50 +118,94 @@ bool CAndroidJoystick::onJoystickButtonEvent(AInputEvent* event)
     joy = CLinuxJoystickAndroid::getJoystick(deviceid);
   }
   if (joy == NULL)
-    return false;
+    return true;
 
   int32_t keycode = AKeyEvent_getKeyCode(event);
-  int32_t flags = AKeyEvent_getFlags(event);
-  int32_t state = AKeyEvent_getMetaState(event);
-  int32_t repeatCount = AKeyEvent_getRepeatCount(event);
+  int32_t action = AKeyEvent_getAction(event);
 
-  CXBMCApp::android_printf("CAndroidJoystick: button event (code: %d; repeat: %d; flags: 0x%0X; state: %d; devname: %s; device:%d, src:%d)", 
-    keycode, repeatCount, flags, AKeyEvent_getAction(event), joy->m_state.name.c_str(), deviceid, AInputEvent_getSource(event));
-
-  switch (AKeyEvent_getAction(event))
+  CXBMCApp::android_printf("CAndroidJoystick: button event (code: %d; action: %d; devname: %s; device:%d, src:%d)", 
+    keycode, action, joy->m_state.name.c_str(), deviceid, AInputEvent_getSource(event));
+  
   {
-    case AKEY_EVENT_ACTION_DOWN:
-      CXBMCApp::android_printf("CXBMCApp: key down (code: %d; repeat: %d; flags: 0x%0X; alt: %s; shift: %s; sym: %s)",
-                      keycode, repeatCount, flags,
-                      (state & AMETA_ALT_ON) ? "yes" : "no",
-                      (state & AMETA_SHIFT_ON) ? "yes" : "no",
-                      (state & AMETA_SYM_ON) ? "yes" : "no");
-      return true;
+    CSingleLock lock(joy->m_critSection);
 
-    case AKEY_EVENT_ACTION_UP:
-      CXBMCApp::android_printf("CXBMCApp: key up (code: %d; repeat: %d; flags: 0x%0X; alt: %s; shift: %s; sym: %s)",
-                      keycode, repeatCount, flags,
-                      (state & AMETA_ALT_ON) ? "yes" : "no",
-                      (state & AMETA_SHIFT_ON) ? "yes" : "no",
-                     (state & AMETA_SYM_ON) ? "yes" : "no");
-      return true;
+    for (int i=0; i<joy->m_state.buttonCount; ++i)
+      joy->m_state.buttons[i] = 0;
+      
+    if (action == AKEY_EVENT_ACTION_DOWN)
+    {
+      // Map keycode to XBMC button ID (Based upon xbox 360 mapping)
+      int32_t xbmcButton = -1;
+      switch (keycode)
+      {
+        case AKEYCODE_MENU:
+          return false;
 
-    case AKEY_EVENT_ACTION_MULTIPLE:
-      CXBMCApp::android_printf("CXBMCApp: key multiple (code: %d; repeat: %d; flags: 0x%0X; alt: %s; shift: %s; sym: %s)",
-                      keycode, repeatCount, flags,
-                      (state & AMETA_ALT_ON) ? "yes" : "no",
-                      (state & AMETA_SHIFT_ON) ? "yes" : "no",
-                      (state & AMETA_SYM_ON) ? "yes" : "no");
-      break;
+        case AKEYCODE_BUTTON_A:
+          xbmcButton = 1;
+          break;
 
-    default:
-      CXBMCApp::android_printf("CXBMCApp: unknown key (code: %d; repeat: %d; flags: 0x%0X; alt: %s; shift: %s; sym: %s)",
-                      keycode, repeatCount, flags,
-                      (state & AMETA_ALT_ON) ? "yes" : "no",
-                      (state & AMETA_SHIFT_ON) ? "yes" : "no",
-                      (state & AMETA_SYM_ON) ? "yes" : "no");
-      break;
+        case AKEYCODE_BUTTON_B:
+          xbmcButton = 2;
+          break;
+
+        case AKEYCODE_BUTTON_X:
+          xbmcButton = 3;
+          break;
+
+        case AKEYCODE_BUTTON_Y:
+          xbmcButton = 4;
+          break;
+
+        case AKEYCODE_BUTTON_L1:
+          xbmcButton = 5;
+          break;
+
+        case AKEYCODE_BUTTON_R1:
+          xbmcButton = 6;
+          break;
+
+        case AKEYCODE_DPAD_UP:
+          xbmcButton = 11;
+          break;
+
+        case AKEYCODE_DPAD_DOWN:
+          xbmcButton = 12;
+          break;
+
+        case AKEYCODE_DPAD_LEFT:
+          xbmcButton = 13;
+          break;
+
+        case AKEYCODE_DPAD_RIGHT:
+          xbmcButton = 14;
+          break;
+
+        case AKEYCODE_BUTTON_THUMBL:
+          xbmcButton = 9;
+          break;
+
+        case AKEYCODE_BUTTON_THUMBR:
+          xbmcButton = 10;
+          break;
+
+        case AKEYCODE_BACK:
+          xbmcButton = 7;
+          break;
+
+        case AKEYCODE_BUTTON_START:
+          xbmcButton = 8;
+          break;
+
+        case AKEYCODE_BUTTON_SELECT:
+          xbmcButton = 15;
+          break;
+
+      }
+      if (xbmcButton > 0)
+        joy->m_state.buttons[xbmcButton-1] = 1;
+    }
   }
-
-  return false;
+  
+  return true;
 }

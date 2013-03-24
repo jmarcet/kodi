@@ -21,6 +21,7 @@
 #pragma once
 
 #include "input/IJoystick.h"
+#include "threads/SingleLock.h"
 
 #include <string>
 #include <map>
@@ -42,6 +43,10 @@ public:
   static void clearJoysticks();
   
 private:
+  CCriticalSection m_critSection;
   SJoystick   m_state;
+  SJoystick   m_lastState;
+  int32_t     m_axisIds[GAMEPAD_AXIS_COUNT];
+
   static std::map<int32_t, CLinuxJoystickAndroid*> m_joysticks;
 };
