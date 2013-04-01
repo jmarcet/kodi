@@ -89,7 +89,8 @@ CPeripheralCecAdapter::CPeripheralCecAdapter(const PeripheralType type, const Pe
   m_bIsMuted(false), // TODO fetch the correct initial value when system audiostatus is implemented in libCEC
   m_bGoingToStandby(false),
   m_bIsRunning(false),
-  m_bDeviceRemoved(false)
+  m_bDeviceRemoved(false),
+  m_bCECIsActive(true)
 {
   m_currentButton.iButton = 0;
   m_currentButton.iDuration = 0;
@@ -148,6 +149,8 @@ void CPeripheralCecAdapter::Announce(AnnouncementFlag flag, const char *sender, 
       // the option to make XBMC the active source is set
       if (m_configuration.bActivateSource == 1)
         m_cecAdapter->SetActiveSource();
+
+      m_bCECIsActive = true;
     }
   }
   else if (flag == GUI && !strcmp(sender, "xbmc") && !strcmp(message, "OnScreensaverActivated") && m_bIsReady)
@@ -157,8 +160,10 @@ void CPeripheralCecAdapter::Announce(AnnouncementFlag flag, const char *sender, 
     {
       m_screensaverLastActivated = CDateTime::GetCurrentDateTime();
       // only power off when we're the active source
-      if (m_cecAdapter->IsLibCECActiveSource())
+      if (m_cecAdapter->IsLibCECActiveSource()) {
         m_cecAdapter->StandbyDevices(CECDEVICE_BROADCAST);
+        m_bCECIsActive = false;
+      }
     }
   }
   else if (flag == System && !strcmp(sender, "xbmc") && !strcmp(message, "OnSleep"))
@@ -1388,6 +1393,25 @@ void CPeripheralCecAdapter::ReadLogicalAddresses(const CStdString &strString, ce
       if (sscanf(strDevice.c_str(), "%x", &iDevice) == 1 && iDevice >= 0 && iDevice <= 0xF)
         addresses.Set((cec_logical_address)iDevice);
     }
+  }
+}
+
+bool CPeripheralCecAdapter::ToggleDevice(void)
+{
+  if (m_bCECIsActive)
+  {
+    CLog::Log(LOGDEBUG, "%s - CEC device is active, putting on standby...", __FUNCTION__);
+    m_screensaverLastActivated = CDateTime::GetCurrentDateTime();
+    m_cecAdapter->StandbyDevices(CECDEVICE_BROADCAST);
+    m_bCECIsActive = false;
+    return false;
+  }
+  else
+  {
+    CLog::Log(LOGDEBUG, "%s - CEC device is in standby, waking up...", __FUNCTION__);
+    m_cecAdapter->SetActiveSource();
+    m_bCECIsActive = true;
+    return true;
   }
 }
 

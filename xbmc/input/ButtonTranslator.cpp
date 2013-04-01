@@ -115,6 +115,7 @@ static const ActionMapping actions[] =
         {"verticalshiftdown" , ACTION_VSHIFT_DOWN},
         {"nextresolution"    , ACTION_CHANGE_RESOLUTION},
         {"audiotoggledigital", ACTION_TOGGLE_DIGITAL_ANALOG},
+        {"togglececdevice"   , ACTION_TOGGLE_CECDEVICE},
         {"number0"           , REMOTE_0},
         {"number1"           , REMOTE_1},
         {"number2"           , REMOTE_2},

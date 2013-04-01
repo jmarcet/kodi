@@ -309,6 +309,7 @@
 #define ACTION_SUBTITLE_VSHIFT_UP     230 // shift up subtitles in DVDPlayer
 #define ACTION_SUBTITLE_VSHIFT_DOWN   231 // shift down subtitles in DVDPlayer
 #define ACTION_SUBTITLE_ALIGN         232 // toggle vertical alignment of subtitles
+#define ACTION_TOGGLE_CECDEVICE       233
 
 // Window ID defines to make the code a bit more readable
 #define WINDOW_INVALID                     9999
