@@ -438,8 +438,12 @@ void CGraphicContext::SetVideoResolution(RESOLUTION res, bool forceUpdate)
   m_scissors.SetRect(0, 0, (float)m_iScreenWidth, (float)m_iScreenHeight);
   m_Resolution    = res;
 
-  //tell the videoreferenceclock that we're about to change the refreshrate
-  g_VideoReferenceClock.RefreshChanged();
+//  //tell the videoreferenceclock that we're about to change the refreshrate
+//  g_VideoReferenceClock.RefreshChanged();
+
+  // we are stopping the videoreferenceclock before start to change screenmode
+  // Intel and AMD drivers need this to not make the referenceclock thread hang
+  g_VideoReferenceClock.StopThread();
 
   if (g_advancedSettings.m_fullScreen)
   {
@@ -457,6 +461,9 @@ void CGraphicContext::SetVideoResolution(RESOLUTION res, bool forceUpdate)
 
   // make sure all stereo stuff are correctly setup
   SetStereoView(RENDER_STEREO_VIEW_OFF);
+
+  // we are restarting the videoreferenceclock as screenmode-change already done
+  g_VideoReferenceClock.Create();
 
   // update anyone that relies on sizing information
   g_renderManager.Recover();
