@@ -231,6 +231,7 @@ public:
   void ResetSystemIdleTimer();
   void ResetScreenSaverTimer();
   void StopScreenSaverTimer();
+  bool ToggleCECDevice(void);
   // Wakes up from the screensaver and / or DPMS. Returns true if woken up.
   bool WakeUpScreenSaverAndDPMS(bool bPowerOffKeyPressed = false);
   bool WakeUpScreenSaver(bool bPowerOffKeyPressed = false);
