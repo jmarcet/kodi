@@ -315,6 +315,8 @@
 
 #define ACTION_SWITCH_PLAYER          234
 
+#define ACTION_TOGGLE_CECDEVICE       235
+
 // touch actions
 #define ACTION_TOUCH_TAP              401
 #define ACTION_TOUCH_TAP_TEN          410

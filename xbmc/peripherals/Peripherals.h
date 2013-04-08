@@ -168,6 +168,12 @@ namespace PERIPHERALS
     virtual bool ToggleMute(void);
 
     /*!
+     * @brief Try to toggle the playing device state via a peripheral.
+     * @return True when the playing device has been switched on, false otherwise.
+     */
+    virtual bool ToggleDevice(void);
+
+    /*!
      * @brief Try to mute the audio via a peripheral.
      * @return True when this change was handled by a peripheral (and should not be handled by anything else), false otherwise.
      */
