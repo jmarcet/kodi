@@ -35,6 +35,7 @@ namespace PERIPHERALS
     void ScheduleVolumeDown(void) {}
     bool IsMuted(void) { return false; }
     void ScheduleMute(void) {}
+    bool ToggleDeviceState(CecStateChange mode = STATE_SWITCH_TOGGLE, bool forceType = false) { return false; }
 
     int GetButton(void) { return 0; }
     unsigned int GetHoldTime(void) { return 0; }
@@ -111,6 +112,7 @@ namespace PERIPHERALS
 
     void ActivateSource(void);
     void StandbyDevices(void);
+    bool ToggleDeviceState(CecStateChange mode = STATE_SWITCH_TOGGLE, bool forceType = false);
 
   protected:
     bool OpenConnection(void);
