@@ -653,6 +653,26 @@ bool CPeripherals::ToggleMute(void)
   return false;
 }
 
+bool CPeripherals::ToggleCECDevice(void)
+{
+  bool ret(false);
+  vector<CPeripheral *> peripherals;
+
+  if (SupportsCEC() && GetPeripheralsWithFeature(peripherals, FEATURE_CEC))
+  {
+    for (unsigned int iPeripheralPtr = 0; iPeripheralPtr < peripherals.size(); iPeripheralPtr++)
+    {
+      CPeripheralCecAdapter *cecDevice = (CPeripheralCecAdapter *) peripherals.at(iPeripheralPtr);
+      if (cecDevice && cecDevice->IsRunning())
+      {
+        ret = cecDevice->ToggleDevice();
+      }
+    }
+  }
+
+  return ret;
+}
+
 bool CPeripherals::GetNextKeypress(float frameTime, CKey &key)
 {
   vector<CPeripheral *> peripherals;
