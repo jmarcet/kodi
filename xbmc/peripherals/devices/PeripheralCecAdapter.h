@@ -97,6 +97,7 @@ namespace PERIPHERALS
     void VolumeDown(void);
     void ToggleMute(void);
     bool IsMuted(void);
+    bool IsRunning(void) const;
 
     // CPeripheral callbacks
     void OnSettingChanged(const CStdString &strChangedSetting);
@@ -110,12 +111,12 @@ namespace PERIPHERALS
     // public CEC methods
     void ActivateSource(void);
     void StandbyDevices(void);
+    bool ToggleDevice(void);
 
   private:
     bool InitialiseFeature(const PeripheralFeature feature);
     void ResetMembers(void);
     void Process(void);
-    bool IsRunning(void) const;
 
     bool OpenConnection(void);
     bool ReopenConnection(void);
@@ -175,6 +176,7 @@ namespace PERIPHERALS
     bool                              m_bActiveSourceBeforeStandby;
     bool                              m_bOnPlayReceived;
     bool                              m_bPlaybackPaused;
+    bool                              m_bCECIsActive;
     CStdString                        m_strComPort;
   };
 

@@ -203,6 +203,7 @@ const BUILT_IN commands[] = {
   { "UpdateAddonRepos",           false,  "Check add-on repositories for updates" },
   { "UpdateLocalAddons",          false,  "Check for local add-on changes" },
   { "ToggleDPMS",                 false,  "Toggle DPMS mode manually"},
+  { "ToggleCECDevice",            false,  "Toggle state of playing device via a CEC peripheral"},
   { "Weather.Refresh",            false,  "Force weather data refresh"},
   { "Weather.LocationNext",       false,  "Switch to next weather location"},
   { "Weather.LocationPrevious",   false,  "Switch to previous weather location"},
@@ -1571,6 +1572,10 @@ int CBuiltins::Execute(const CStdString& execString)
   else if (execute.Equals("toggledpms"))
   {
     g_application.ToggleDPMS(true);
+  }
+  else if (execute.Equals("togglececdevice"))
+  {
+    CApplicationMessenger::Get().ToggleCECDevice();
   }
 #if defined(HAS_LIRC) || defined(HAS_IRSERVERSUITE)
   else if (execute.Equals("lirc.stop"))
