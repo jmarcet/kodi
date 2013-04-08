@@ -44,6 +44,7 @@
 #include "cores/AudioEngine/AEFactory.h"
 #include "music/tags/MusicInfoTag.h"
 
+#include "peripherals/Peripherals.h"
 #include "powermanagement/PowerManager.h"
 
 #ifdef _WIN32
@@ -69,6 +70,7 @@
 using namespace PVR;
 using namespace std;
 using namespace MUSIC_INFO;
+using namespace PERIPHERALS;
 
 CDelayedMessage::CDelayedMessage(ThreadMessage& msg, unsigned int delay) : CThread("CDelayedMessage")
 {
@@ -805,6 +807,11 @@ void CApplicationMessenger::ProcessMessage(ThreadMessage *pMsg)
       CGUIWindowLoginScreen::LoadProfile(pMsg->dwParam1);
       break;
     }
+    case TMSG_TOGGLECECDEVICE:
+    {
+      *((bool*)pMsg->lpVoid) = g_peripherals.ToggleCECDevice();
+      break;
+    }
   }
 }
 
@@ -1289,4 +1296,15 @@ void CApplicationMessenger::LoadProfile(unsigned int idx)
   ThreadMessage tMsg = {TMSG_LOADPROFILE};
   tMsg.dwParam1 = idx;
   SendMessage(tMsg, false);
+}
+
+bool CApplicationMessenger::ToggleCECDevice()
+{
+  bool result;
+
+  ThreadMessage tMsg = {TMSG_TOGGLECECDEVICE};
+  tMsg.lpVoid = (void*)&result;
+  SendMessage(tMsg, false);
+
+  return result;
 }
