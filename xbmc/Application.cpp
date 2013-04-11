@@ -2418,7 +2418,7 @@ bool CApplication::OnKey(const CKey& key)
     CLog::Log(LOGDEBUG, "%s: action %s [%d], calling ToggleCECDevice()", __FUNCTION__, action.GetName().c_str(), action.GetID());
     // do not wake up the screensaver right after switching off the
     // playing device
-    if (!g_peripherals.ToggleCECDevice())
+    if (!ToggleCECDevice())
       return true;
   }
 
@@ -4562,6 +4562,11 @@ bool CApplication::ToggleDPMS(bool manual)
     }
   }
   return false;
+}
+
+bool CApplication::ToggleCECDevice(void)
+{
+  return g_peripherals.ToggleCECDevice();
 }
 
 bool CApplication::WakeUpScreenSaverAndDPMS(bool bPowerOffKeyPressed /* = false */)
