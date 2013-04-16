@@ -1575,7 +1575,7 @@ int CBuiltins::Execute(const CStdString& execString)
   }
   else if (execute.Equals("togglececdevice"))
   {
-    g_application.ToggleCECDevice();
+    CApplicationMessenger::Get().ToggleCECDevice();
   }
 #if defined(HAS_LIRC) || defined(HAS_IRSERVERSUITE)
   else if (execute.Equals("lirc.stop"))

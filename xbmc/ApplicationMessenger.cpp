@@ -46,6 +46,7 @@
 #include "cores/AudioEngine/AEFactory.h"
 #include "music/tags/MusicInfoTag.h"
 
+#include "peripherals/Peripherals.h"
 #include "powermanagement/PowerManager.h"
 
 #ifdef _WIN32
@@ -74,6 +75,7 @@
 using namespace PVR;
 using namespace std;
 using namespace MUSIC_INFO;
+using namespace PERIPHERALS;
 
 CDelayedMessage::CDelayedMessage(ThreadMessage& msg, unsigned int delay) : CThread("DelayedMessage")
 {
@@ -819,6 +821,11 @@ void CApplicationMessenger::ProcessMessage(ThreadMessage *pMsg)
       CGUIWindowLoginScreen::LoadProfile(pMsg->dwParam1);
       break;
     }
+    case TMSG_TOGGLECECDEVICE:
+    {
+      *((bool*)pMsg->lpVoid) = g_peripherals.ToggleCECDevice();
+      break;
+    }
     case TMSG_START_ANDROID_ACTIVITY:
     {
 #if defined(TARGET_ANDROID)
@@ -1335,4 +1342,15 @@ void CApplicationMessenger::StartAndroidActivity(const vector<CStdString> &param
   ThreadMessage tMsg = {TMSG_START_ANDROID_ACTIVITY};
   tMsg.params = params;
   SendMessage(tMsg, false);
+}
+
+bool CApplicationMessenger::ToggleCECDevice()
+{
+  bool result;
+
+  ThreadMessage tMsg = {TMSG_TOGGLECECDEVICE};
+  tMsg.lpVoid = (void*)&result;
+  SendMessage(tMsg, false);
+
+  return result;
 }

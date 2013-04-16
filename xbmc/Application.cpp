@@ -2506,11 +2506,11 @@ bool CApplication::OnKey(const CKey& key)
   m_idleTimer.StartZero();
   bool processKey = AlwaysProcess(action);
 
-  if (!strcmp(action.GetName().c_str(), "ToggleCECDevice"))
+  if (action.GetName().Equals("ToggleCECDevice"))
   {
     CLog::Log(LOGDEBUG, "%s: action %s [%d], calling ToggleCECDevice()", __FUNCTION__, action.GetName().c_str(), action.GetID());
     // do not wake up the screensaver right after switching off the playing device
-    if (!ToggleCECDevice())
+    if(!CApplicationMessenger::Get().ToggleCECDevice())
       return true;
   }
 
@@ -4665,11 +4665,6 @@ bool CApplication::ToggleDPMS(bool manual)
     }
   }
   return false;
-}
-
-bool CApplication::ToggleCECDevice(void)
-{
-  return g_peripherals.ToggleCECDevice();
 }
 
 bool CApplication::WakeUpScreenSaverAndDPMS(bool bPowerOffKeyPressed /* = false */)
