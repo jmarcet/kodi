@@ -2506,11 +2506,17 @@ bool CApplication::OnKey(const CKey& key)
   m_idleTimer.StartZero();
   bool processKey = AlwaysProcess(action);
 
-  if (action.GetName().Equals("ToggleCECDevice"))
+  if (StringUtils::StartsWith(action.GetName(),"CECToggleState") || StringUtils::StartsWith(action.GetName(),"CECStandby"))
   {
-    CLog::Log(LOGDEBUG, "%s: action %s [%d], calling ToggleCECDevice()", __FUNCTION__, action.GetName().c_str(), action.GetID());
+    bool ret = true;
+
+    CLog::Log(LOGDEBUG, "%s: action %s [%d], toggling state of playing device", __FUNCTION__, action.GetName().c_str(), action.GetID());
     // do not wake up the screensaver right after switching off the playing device
-    if(!CApplicationMessenger::Get().ToggleCECDevice())
+    if (StringUtils::StartsWith(action.GetName(),"CECToggleState"))
+      ret = CApplicationMessenger::Get().CECToggleState();
+    else
+      ret = CApplicationMessenger::Get().CECStandby();
+    if (!ret)
       return true;
   }
 

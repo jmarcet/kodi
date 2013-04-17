@@ -136,7 +136,6 @@ void CPeripheralCecAdapter::ResetMembers(void)
   m_bOnPlayReceived          = false;
   m_bPlaybackPaused          = false;
   m_queryThread              = NULL;
-  m_bCECIsActive             = true;
 
   m_currentButton.iButton    = 0;
   m_currentButton.iDuration  = 0;
@@ -414,6 +413,7 @@ void CPeripheralCecAdapter::Process(void)
       {
         CLog::Log(LOGDEBUG, "%s - sending standby commands", __FUNCTION__);
         m_cecAdapter->StandbyDevices();
+        m_cecAdapter->SetInactiveView();
       }
       else if (m_configuration.bSendInactiveSource == 1)
       {
@@ -1659,7 +1659,6 @@ void CPeripheralCecAdapter::ProcessActivateSource(void)
   if (bActivate)
   {
     m_cecAdapter->SetActiveSource();
-    m_bCECIsActive = true;
   }
 }
 
@@ -1682,22 +1681,24 @@ void CPeripheralCecAdapter::ProcessStandbyDevices(void)
   if (bStandby)
   {
     m_cecAdapter->StandbyDevices(CECDEVICE_BROADCAST);
-    m_bCECIsActive = false;
+    m_cecAdapter->SetInactiveView();
   }
 }
 
-bool CPeripheralCecAdapter::ToggleDevice(void)
+bool CPeripheralCecAdapter::ToggleDeviceState(CecStateChange mode /*= STATE_SWITCH */, bool forceType /*= false */)
 {
-  if (m_bCECIsActive)
+  if (!IsRunning())
+    return false;
+  if ((m_cecAdapter->IsLibCECActiveSource() && (mode == STATE_SWITCH || mode == STATE_SWITCH_OFF)) || (forceType && mode == STATE_SWITCH_OFF))
   {
-    CLog::Log(LOGDEBUG, "%s - CEC device is active, putting on standby...", __FUNCTION__);
+    CLog::Log(LOGDEBUG, "%s - putting CEC device on standby...", __FUNCTION__);
     m_screensaverLastActivated = CDateTime::GetCurrentDateTime();
     StandbyDevices();
     return false;
   }
-  else
+  else if (mode == STATE_SWITCH || mode == STATE_SWITCH_ON)
   {
-    CLog::Log(LOGDEBUG, "%s - CEC device is in standby, waking up...", __FUNCTION__);
+    CLog::Log(LOGDEBUG, "%s - waking up CEC device...", __FUNCTION__);
     ActivateSource();
     return true;
   }
