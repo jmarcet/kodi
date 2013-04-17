@@ -821,9 +821,19 @@ void CApplicationMessenger::ProcessMessage(ThreadMessage *pMsg)
       CGUIWindowLoginScreen::LoadProfile(pMsg->dwParam1);
       break;
     }
-    case TMSG_TOGGLECECDEVICE:
+    case TMSG_CECTOGGLESTATE:
     {
-      *((bool*)pMsg->lpVoid) = g_peripherals.ToggleCECDevice();
+      *((bool*)pMsg->lpVoid) = g_peripherals.ToggleDeviceState(STATE_SWITCH, (bool)pMsg->dwParam1);
+      break;
+    }
+    case TMSG_CECACTIVATESOURCE:
+    {
+      *((bool*)pMsg->lpVoid) = g_peripherals.ToggleDeviceState(STATE_SWITCH_ON, (bool)pMsg->dwParam1);
+      break;
+    }
+    case TMSG_CECSTANDBY:
+    {
+      *((bool*)pMsg->lpVoid) = g_peripherals.ToggleDeviceState(STATE_SWITCH_OFF, (bool)pMsg->dwParam1);
       break;
     }
     case TMSG_START_ANDROID_ACTIVITY:
@@ -1344,12 +1354,37 @@ void CApplicationMessenger::StartAndroidActivity(const vector<CStdString> &param
   SendMessage(tMsg, false);
 }
 
-bool CApplicationMessenger::ToggleCECDevice()
+bool CApplicationMessenger::CECToggleState(bool forceType)
 {
   bool result;
 
-  ThreadMessage tMsg = {TMSG_TOGGLECECDEVICE};
+  ThreadMessage tMsg = {TMSG_CECTOGGLESTATE};
   tMsg.lpVoid = (void*)&result;
+  tMsg.dwParam1 = (unsigned int)forceType;
+  SendMessage(tMsg, false);
+
+  return result;
+}
+
+bool CApplicationMessenger::CECActivateSource(bool forceType)
+{
+  bool result;
+
+  ThreadMessage tMsg = {TMSG_CECACTIVATESOURCE};
+  tMsg.lpVoid = (void*)&result;
+  tMsg.dwParam1 = (unsigned int)forceType;
+  SendMessage(tMsg, false);
+
+  return result;
+}
+
+bool CApplicationMessenger::CECStandby(bool forceType)
+{
+  bool result;
+
+  ThreadMessage tMsg = {TMSG_CECSTANDBY};
+  tMsg.lpVoid = (void*)&result;
+  tMsg.dwParam1 = (unsigned int)forceType;
   SendMessage(tMsg, false);
 
   return result;

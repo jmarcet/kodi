@@ -135,8 +135,8 @@ void CPeripheralCecAdapter::ResetMembers(void)
   m_bActiveSourceBeforeStandby = false;
   m_bOnPlayReceived          = false;
   m_bPlaybackPaused          = false;
+  m_bCECDeviceIsRunning      = false;
   m_queryThread              = NULL;
-  m_bCECIsActive             = true;
 
   m_currentButton.iButton    = 0;
   m_currentButton.iDuration  = 0;
@@ -1522,13 +1522,19 @@ bool CPeripheralCecAdapterUpdateThread::SetInitialConfiguration(void)
 {
   // the option to make XBMC the active source is set
   if (m_configuration.bActivateSource == 1)
+  {
     m_adapter->m_cecAdapter->SetActiveSource();
+    m_adapter->m_bCECDeviceIsRunning = true;
+  }
 
   // devices to wake are set
   cec_logical_addresses tvOnly;
   tvOnly.Clear(); tvOnly.Set(CECDEVICE_TV);
   if (!m_configuration.wakeDevices.IsEmpty() && (m_configuration.wakeDevices != tvOnly || m_configuration.bActivateSource == 0))
+  {
     m_adapter->m_cecAdapter->PowerOnDevices(CECDEVICE_BROADCAST);
+    m_adapter->m_bCECDeviceIsRunning = true;
+  }
 
   // wait until devices are powered up
   if (!WaitReady())
@@ -1659,7 +1665,7 @@ void CPeripheralCecAdapter::ProcessActivateSource(void)
   if (bActivate)
   {
     m_cecAdapter->SetActiveSource();
-    m_bCECIsActive = true;
+    m_bCECDeviceIsRunning = true;
   }
 }
 
@@ -1682,24 +1688,32 @@ void CPeripheralCecAdapter::ProcessStandbyDevices(void)
   if (bStandby)
   {
     m_cecAdapter->StandbyDevices(CECDEVICE_BROADCAST);
-    m_bCECIsActive = false;
+    m_bCECDeviceIsRunning = false;
   }
 }
 
-bool CPeripheralCecAdapter::ToggleDevice(void)
+bool CPeripheralCecAdapter::ToggleDeviceState(CecStateChange mode /*= STATE_SWITCH */, bool forceType /*= false */)
 {
-  if (m_bCECIsActive)
-  {
-    CLog::Log(LOGDEBUG, "%s - CEC device is active, putting on standby...", __FUNCTION__);
-    m_screensaverLastActivated = CDateTime::GetCurrentDateTime();
-    StandbyDevices();
+  if (!IsRunning())
     return false;
-  }
-  else
+  if (forceType || m_cecAdapter->IsLibCECActiveSource())
   {
-    CLog::Log(LOGDEBUG, "%s - CEC device is in standby, waking up...", __FUNCTION__);
-    ActivateSource();
-    return true;
+    if (m_bCECDeviceIsRunning == true)
+    {
+      if (mode == STATE_SWITCH || mode == STATE_SWITCH_OFF)
+      {
+        CLog::Log(LOGDEBUG, "%s - putting CEC device on standby...", __FUNCTION__);
+        m_screensaverLastActivated = CDateTime::GetCurrentDateTime();
+        StandbyDevices();
+      }
+    }
+    else if (mode == STATE_SWITCH || mode == STATE_SWITCH_ON)
+    {
+      CLog::Log(LOGDEBUG, "%s - waking up CEC device...", __FUNCTION__);
+      ActivateSource();
+      return true;
+    }
+    return false;
   }
 }
 

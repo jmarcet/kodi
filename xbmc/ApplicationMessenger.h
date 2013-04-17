@@ -89,7 +89,9 @@ namespace MUSIC_INFO
 #define TMSG_RENDERER_FLUSH       312
 #define TMSG_INHIBITIDLESHUTDOWN  313
 #define TMSG_LOADPROFILE          314
-#define TMSG_TOGGLECECDEVICE      315
+#define TMSG_CECTOGGLESTATE       315
+#define TMSG_CECACTIVATESOURCE    316
+#define TMSG_CECSTANDBY           317
 
 #define TMSG_NETWORKMESSAGE         500
 
@@ -215,7 +217,9 @@ public:
   void SetCurrentItem(const CFileItem& item);
 
   void LoadProfile(unsigned int idx);
-  bool ToggleCECDevice();
+  bool CECToggleState(bool forceType = false);
+  bool CECActivateSource(bool forceType = false);
+  bool CECStandby(bool forceType = false);
 
   CStdString GetResponse();
   int SetResponse(CStdString response);
