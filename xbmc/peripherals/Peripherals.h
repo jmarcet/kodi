@@ -22,6 +22,7 @@
 #include "system.h"
 #include "bus/PeripheralBus.h"
 #include "devices/Peripheral.h"
+#include "devices/PeripheralCecAdapter.h"
 #include "threads/CriticalSection.h"
 #include "threads/Thread.h"
 
@@ -171,7 +172,7 @@ namespace PERIPHERALS
      * @brief Try to toggle the playing device state via a peripheral.
      * @return True when the playing device has been switched on, false otherwise.
      */
-    virtual bool ToggleCECDevice(void);
+    virtual bool ToggleDeviceState(const CecStateChange mode = STATE_SWITCH, const bool forceType = false, const unsigned int iPeripheral = 0);
 
     /*!
      * @brief Try to mute the audio via a peripheral.

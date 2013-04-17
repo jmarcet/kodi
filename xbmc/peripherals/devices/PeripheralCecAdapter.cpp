@@ -136,7 +136,6 @@ void CPeripheralCecAdapter::ResetMembers(void)
   m_bOnPlayReceived          = false;
   m_bPlaybackPaused          = false;
   m_queryThread              = NULL;
-  m_bCECIsActive             = true;
 
   m_currentButton.iButton    = 0;
   m_currentButton.iDuration  = 0;
@@ -1659,7 +1658,6 @@ void CPeripheralCecAdapter::ProcessActivateSource(void)
   if (bActivate)
   {
     m_cecAdapter->SetActiveSource();
-    m_bCECIsActive = true;
   }
 }
 
@@ -1682,24 +1680,36 @@ void CPeripheralCecAdapter::ProcessStandbyDevices(void)
   if (bStandby)
   {
     m_cecAdapter->StandbyDevices(CECDEVICE_BROADCAST);
-    m_bCECIsActive = false;
   }
 }
 
-bool CPeripheralCecAdapter::ToggleDevice(void)
+bool CPeripheralCecAdapter::ToggleDeviceState(CecStateChange mode /*= STATE_SWITCH */, bool forceType /*= false */)
 {
-  if (m_bCECIsActive)
-  {
-    CLog::Log(LOGDEBUG, "%s - CEC device is active, putting on standby...", __FUNCTION__);
-    m_screensaverLastActivated = CDateTime::GetCurrentDateTime();
-    StandbyDevices();
+  if (!IsRunning())
     return false;
-  }
-  else
+  if (forceType || m_cecAdapter->IsLibCECActiveSource())
   {
-    CLog::Log(LOGDEBUG, "%s - CEC device is in standby, waking up...", __FUNCTION__);
-    ActivateSource();
-    return true;
+    // wait for the TV if we're configured to become the active source.
+    // wait for the first device in the wake list otherwise.
+    cec_logical_address waitFor = (m_configuration.bActivateSource == 1) ?
+        CECDEVICE_TV :
+        m_configuration.wakeDevices.primary;
+    if (m_cecAdapter->GetDevicePowerStatus(waitFor) == CEC_POWER_STATUS_ON)
+    {
+      if (mode == STATE_SWITCH || mode == STATE_SWITCH_OFF)
+      {
+        CLog::Log(LOGDEBUG, "%s - putting CEC device on standby...", __FUNCTION__);
+        m_screensaverLastActivated = CDateTime::GetCurrentDateTime();
+        StandbyDevices();
+        return false;
+      }
+    }
+    else if (mode == STATE_SWITCH || mode == STATE_SWITCH_ON)
+    {
+      CLog::Log(LOGDEBUG, "%s - waking up CEC device...", __FUNCTION__);
+      ActivateSource();
+      return true;
+    }
   }
 }
 

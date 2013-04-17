@@ -26,7 +26,6 @@
 #include "devices/PeripheralNIC.h"
 #include "devices/PeripheralNyxboard.h"
 #include "devices/PeripheralTuner.h"
-#include "devices/PeripheralCecAdapter.h"
 #include "devices/PeripheralImon.h"
 #include "bus/PeripheralBusUSB.h"
 #include "dialogs/GUIDialogPeripheralManager.h"
@@ -653,20 +652,22 @@ bool CPeripherals::ToggleMute(void)
   return false;
 }
 
-bool CPeripherals::ToggleCECDevice(void)
+bool CPeripherals::ToggleDeviceState(CecStateChange mode /*= STATE_SWITCH */, bool forceType /*= false */, unsigned int iPeripheral /*= 0 */)
 {
   bool ret(false);
   vector<CPeripheral *> peripherals;
 
   if (SupportsCEC() && GetPeripheralsWithFeature(peripherals, FEATURE_CEC))
   {
-    for (unsigned int iPeripheralPtr = 0; iPeripheralPtr < peripherals.size(); iPeripheralPtr++)
+    for (unsigned int iPeripheralPtr = iPeripheral; iPeripheralPtr < peripherals.size(); iPeripheralPtr++)
     {
       CPeripheralCecAdapter *cecDevice = (CPeripheralCecAdapter *) peripherals.at(iPeripheralPtr);
-      if (cecDevice && cecDevice->IsRunning())
+      if (cecDevice)
       {
-        ret = cecDevice->ToggleDevice();
+        ret = cecDevice->ToggleDeviceState(mode, forceType);
       }
+      if (iPeripheral)
+        break;
     }
   }
 
