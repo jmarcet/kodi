@@ -222,6 +222,7 @@ lib/cmyth/Makefile
 /lib/gtest/build-aux/install-sh
 /lib/gtest/build-aux/ltmain.sh
 /lib/gtest/build-aux/missing
+/lib/gtest/build-aux/test-driver
 /lib/gtest/configure
 /lib/gtest/m4/libtool.m4
 /lib/gtest/m4/ltoptions.m4
