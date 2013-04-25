@@ -642,7 +642,7 @@ bool CHALManager::UnMount(CStorageDevice volume)
     else
     {
       DBusMessage *reply;
-      reply = dbus_connection_send_with_reply_and_block(connection, msg, -1, &error); //The reply timout might be bad to have as -1
+      reply = dbus_connection_send_with_reply_and_block(connection, msg, 3000, &error); //The reply timout might be bad to have as -1
       if (dbus_error_is_set(&error))
       {
         CLog::Log(LOGERROR, "DBus: %s - %s", error.name, error.message);
@@ -723,7 +723,7 @@ bool CHALManager::Mount(CStorageDevice *volume, CStdString mountpath)
     else
     {
       DBusMessage *reply;
-      reply = dbus_connection_send_with_reply_and_block(connection, msg, -1, &error); //The reply timout might be bad to have as -1
+      reply = dbus_connection_send_with_reply_and_block(connection, msg, 3000, &error); //The reply timout might be bad to have as -1
       if (dbus_error_is_set(&error))
       {
         CLog::Log(LOGERROR, "DBus: %s - %s", error.name, error.message);
