@@ -758,7 +758,7 @@ if test "$host_vendor" = "apple" ; then
 elif test "$target_platform" = "target_raspberry_pi"; then
   ARCH="arm"
   use_arch="arm"
-elif test "$use_arch" = "arm"; then
+elif false; then
   CFLAGS="$CFLAGS -mno-apcs-stack-check"
   CXXFLAGS="$CXXFLAGS -mno-apcs-stack-check"
   FFMPEG_EXTRACFLAGS=""
