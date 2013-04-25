@@ -130,7 +130,7 @@ DBusMessage *CDBusMessage::Send(DBusConnection *con, DBusError *error)
     if (m_reply)
       dbus_message_unref(m_reply);
 
-    m_reply = dbus_connection_send_with_reply_and_block(con, m_message, -1, error);
+    m_reply = dbus_connection_send_with_reply_and_block(con, m_message, 3000, error);
   }
 
   return m_reply;
