@@ -1,3 +1,4 @@
+CXXFLAGS += -DSQUISH_USE_SSE=2 -msse2
 ARCH=@ARCH@
 
 SRCS= \
