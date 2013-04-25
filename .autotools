@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configurations>
+<configuration id="org.eclipse.linuxtools.cdt.autotools.core.configuration.build.722469629">
+<option id="configure" value="configure"/>
+<option id="configdir" value=""/>
+<option id="cache-file" value=""/>
+<option id="help" value="false"/>
+<option id="no-create" value="false"/>
+<option id="quiet" value="false"/>
+<option id="version" value="false"/>
+<option id="host" value="x86_64-pc-linux-gnu"/>
+<option id="build" value="x86_64-pc-linux-gnu"/>
+<option id="target" value=""/>
+<option id="prefix" value="/usr"/>
+<option id="exec-prefix" value=""/>
+<option id="libdir" value="/usr/lib64"/>
+<option id="bindir" value=""/>
+<option id="sbindir" value=""/>
+<option id="includedir" value=""/>
+<option id="datadir" value="/usr/share"/>
+<option id="sysconfdir" value="/etc"/>
+<option id="infodir" value="/usr/share/info"/>
+<option id="mandir" value="/usr/share/man"/>
+<option id="srcdir" value=""/>
+<option id="localstatedir" value="/var/lib"/>
+<option id="sharedstatedir" value=""/>
+<option id="libexecdir" value=""/>
+<option id="oldincludedir" value=""/>
+<option id="program-prefix" value=""/>
+<option id="program-suffix" value=""/>
+<option id="program-transform-name" value=""/>
+<option id="enable-maintainer-mode" value="false"/>
+<flag id="CFLAGS">
+<flagvalue id="cflags-debug" value="true"/>
+<flagvalue id="cflags-gprof" value="false"/>
+<flagvalue id="cflags-gcov" value="false"/>
+</flag>
+<option id="user" value="--enable-dependency-tracking --docdir=/usr/share/doc/xbmc-9999 --disable-optimizations --enable-external-libraries --disable-external-ffmpeg --enable-gl --enable-airplay --enable-airtunes --enable-avahi --enable-libbluray --enable-libcap --enable-libcec --enable-dvdcss --enable-debug --enable-fishbmc --disable-gles --disable-goom --disable-hal --disable-joystick --disable-mid --enable-mysql --disable-neon --enable-nfs --enable-gl --disable-profiling --enable-projectm --disable-pulse --enable-mythtv --enable-rsxs --enable-rtmp --enable-samba --enable-sdl --enable-ssh --enable-libusb --enable-upnp --enable-vaapi --disable-vdpau --enable-webserver --enable-x11 --enable-xrandr --enable-ccache"/>
+<option id="autogen" value="bootstrap"/>
+<option id="autogenOpts" value=""/>
+</configuration>
+</configurations>
