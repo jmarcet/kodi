@@ -206,7 +206,7 @@ LIB_DIRS=\
 	lib/cpluff \
 	lib/xbmc-dll-symbols
 
-ifeq (@USE_MYSQL@,1)
+ifeq (@USE_MYTHTV@,1)
 LIB_DIRS += lib/cmyth
 CMYTH=cmyth
 endif
