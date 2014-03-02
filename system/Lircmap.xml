@@ -410,50 +410,22 @@
 
 	<remote device="linux-input-layer">
 	<altname>cx23885_remote</altname>
+	<altname>devinput</altname>
+		<enter>KEY_ENTER</enter>
 		<left>KEY_LEFT</left>
 		<right>KEY_RIGHT</right>
 		<up>KEY_UP</up>
 		<down>KEY_DOWN</down>
-		<select>KEY_OK</select>
-		<select>KEY_ENTER</select>
-		<enter>KEY_ENTER</enter>
-		<clear>KEY_DELETE</clear>
-		<start>KEY_SELECT</start>
-		<start>KEY_PROG1</start>
-		<start>KEY_HOME</start>
-		<back>KEY_ESC</back>
-		<back>KEY_EXIT</back>
+		<info>KEY_I</info>
 		<back>KEY_BACK</back>
-		<back>KEY_CLOSE</back>
-		<record>KEY_RECORD</record>
-		<play>KEY_PLAY</play>
-		<play>KEY_PLAYPAUSE</play>
-		<pause>KEY_PAUSE</pause>
-		<stop>KEY_STOP</stop>
-		<stop>KEY_STOPCD</stop>
-		<forward>KEY_FASTFORWARD</forward>
-		<reverse>KEY_REWIND</reverse>
-		<volumeplus>KEY_VOLUMEUP</volumeplus>
-		<volumeminus>KEY_VOLUMEDOWN</volumeminus>
-		<channelplus>KEY_CHANNELUP</channelplus>
-		<channelminus>KEY_CHANNELDOWN</channelminus>
-		<skipplus>KEY_NEXTSONG</skipplus>
-		<skipplus>KEY_NEXT</skipplus>
-		<skipminus>KEY_PREVIOUSSONG</skipminus>
-		<skipminus>KEY_PREVIOUS</skipminus>
-		<title>KEY_TITLE</title>
-		<title>KEY_EPG</title>
-		<subtitle>KEY_SUBTITLE</subtitle>
-		<language>KEY_LANGUAGE</language>
-		<mute>KEY_MUTE</mute>
-		<power>KEY_POWER</power>
-		<myvideo>KEY_VIDEO</myvideo>
-		<mymusic>KEY_AUDIO</mymusic>
-		<mypictures>KEY_MHP</mypictures>
-		<mypictures>KEY_CAMERA</mypictures>
-		<mytv>KEY_TV</mytv>
-		<liveradio>KEY_RADIO</liveradio>
-		<mytv>KEY_TUNER</mytv>
+		<clear>KEY_DELETE</clear>
+		<play>KEY_P</play>
+		<stop>KEY_X</stop>
+		<forward>KEY_F</forward>
+		<reverse>KEY_R</reverse>
+		<skipplus>KEY_DOT</skipplus>
+		<skipminus>KEY_COMMA</skipminus>
+		<pause>KEY_SPACE</pause>
 		<one>KEY_1</one>
 		<two>KEY_2</two>
 		<three>KEY_3</three>
@@ -464,31 +436,25 @@
 		<eight>KEY_8</eight>
 		<nine>KEY_9</nine>
 		<zero>KEY_0</zero>
-		<one>KEY_NUMERIC_1</one>
-		<two>KEY_NUMERIC_2</two>
-		<three>KEY_NUMERIC_3</three>
-		<four>KEY_NUMERIC_4</four>
-		<five>KEY_NUMERIC_5</five>
-		<six>KEY_NUMERIC_6</six>
-		<seven>KEY_NUMERIC_7</seven>
-		<eight>KEY_NUMERIC_8</eight>
-		<nine>KEY_NUMERIC_9</nine>
-		<zero>KEY_NUMERIC_0</zero>
-		<star>KEY_NUMERIC_STAR</star>
-		<hash>KEY_NUMERIC_POUND</hash>
-		<red>KEY_RED</red>
-		<green>KEY_GREEN</green>
-		<yellow>KEY_YELLOW</yellow>
-		<blue>KEY_BLUE</blue>
-		<menu>KEY_DVD</menu>
+		<star>KEY_L</star>
+		<hash>KEY_A</hash>
+		<power>KEY_S</power>
+		<mytv>KEY_TAB</mytv>
+		<title>KEY_O</title>
+		<playlist>KEY_Z</playlist>
+		<mute>KEY_F8</mute>
+		<volumeminus>KEY_F9</volumeminus>
+		<volumeplus>KEY_F10</volumeplus>
+		<guide>KEY_M</guide>
+		<pageplus>KEY_PAGEUP</pageplus>
+		<pageminus>KEY_PAGEDOWN</pageminus>
 		<menu>KEY_MENU</menu>
-		<info>KEY_INFO</info>
-		<info>KEY_PROPS</info>
-		<display>KEY_ANGLE</display>
-		<display>KEY_ZOOM</display>
-		<recordedtv>KEY_PVR</recordedtv>
-		<teletext>KEY_TEXT</teletext>
-		<clear>KEY_DELETE</clear>
+		<xbox>KEY_ESC</xbox>
+		<title>KEY_C</title>
+		<record>KEY_D</record>
+		<teletext>KEY_U</teletext>
+		<select>KEY_N</select>
+		<start>KEY_G</start>
 	</remote>
 	<remote device="mediacenter">
 		<pause>pause</pause>
@@ -533,62 +499,5 @@
 		<mymusic>green</mymusic>
 		<mypictures>yellow</mypictures>
 		<myvideo>blue</myvideo>
-	</remote>
-
-	<remote device="devinput">
-		<left>KEY_LEFT</left>
-		<right>KEY_RIGHT</right>
-		<up>KEY_UP</up>
-		<down>KEY_DOWN</down>
-		<select>KEY_OK</select>
-		<enter>KEY_ENTER</enter>
-		<clear>KEY_DELETE</clear>
-		<start>KEY_MEDIA</start>
-		<back>KEY_EXIT</back>
-		<record>KEY_RECORD</record>
-		<play>KEY_PLAY</play>
-		<pause>KEY_PAUSE</pause>
-		<stop>KEY_STOP</stop>
-		<forward>KEY_FASTFORWARD</forward>
-		<reverse>KEY_REWIND</reverse>
-		<volumeplus>KEY_VOLUMEUP</volumeplus>
-		<volumeminus>KEY_VOLUMEDOWN</volumeminus>
-		<channelplus>KEY_CHANNELUP</channelplus>
-		<channelminus>KEY_CHANNELDOWN</channelminus>
-		<skipplus>KEY_NEXT</skipplus>
-		<skipminus>KEY_PREVIOUS</skipminus>
-		<title>KEY_EPG</title>
-		<subtitle>KEY_SUBTITLE</subtitle>
-		<language>KEY_LANGUAGE</language>
-		<info>KEY_INFO</info>
-		<display>KEY_ZOOM</display>
-		<mute>KEY_MUTE</mute>
-		<power>KEY_POWER</power>
-		<eject>KEY_EJECT</eject>
-		<menu>KEY_DVD</menu>
-		<menu>KEY_MENU</menu>
-		<myvideo>KEY_VIDEO</myvideo>
-		<mymusic>KEY_AUDIO</mymusic>
-		<mypictures>KEY_CAMERA</mypictures>
-		<mytv>KEY_TUNER</mytv>
-		<teletext>KEY_TEXT</teletext>
-		<one>KEY_NUMERIC_1</one>
-		<two>KEY_NUMERIC_2</two>
-		<three>KEY_NUMERIC_3</three>
-		<four>KEY_NUMERIC_4</four>
-		<five>KEY_NUMERIC_5</five>
-		<six>KEY_NUMERIC_6</six>
-		<seven>KEY_NUMERIC_7</seven>
-		<eight>KEY_NUMERIC_8</eight>
-		<nine>KEY_NUMERIC_9</nine>
-		<zero>KEY_NUMERIC_0</zero>
-		<star>KEY_NUMERIC_STAR</star>
-		<hash>KEY_NUMERIC_POUND</hash>
-		<red>KEY_RED</red>
-		<green>KEY_GREEN</green>
-		<yellow>KEY_YELLOW</yellow>
-		<blue>KEY_BLUE</blue>
-		<recordedtv>KEY_PVR</recordedtv> 
-		<liveradio>KEY_RADIO</liveradio> 
 	</remote>
 </lircmap>
