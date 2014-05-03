@@ -58,6 +58,8 @@ using namespace std;
 
 /* time in seconds to suppress source activation after receiving OnStop */
 #define CEC_SUPPRESS_ACTIVATE_SOURCE_AFTER_ON_STOP 2
+/* time in seconds to force a reconnection after a Standby */
+#define CEC_FORCE_RECONNECT_AFTER_STANDBY 30
 
 class DllLibCECInterface
 {
@@ -128,6 +130,7 @@ void CPeripheralCecAdapter::ResetMembers(void)
   m_iExitCode                = 0;
   m_bIsMuted                 = false; // TODO fetch the correct initial value when system audiostatus is implemented in libCEC
   m_bGoingToStandby          = false;
+  m_bIsActive                = false;
   m_bIsRunning               = false;
   m_bDeviceRemoved           = false;
   m_bActiveSourcePending     = false;
@@ -416,6 +419,7 @@ void CPeripheralCecAdapter::Process(void)
       {
         CLog::Log(LOGDEBUG, "%s - sending inactive source commands", __FUNCTION__);
         m_cecAdapter->SetInactiveView();
+        m_bIsActive = false;
       }
     }
     else
@@ -431,6 +435,7 @@ void CPeripheralCecAdapter::Process(void)
   {
     CSingleLock lock(m_critSection);
     m_bStarted = false;
+    m_bIsActive = false;
     m_bIsRunning = false;
   }
 }
@@ -1524,7 +1529,10 @@ bool CPeripheralCecAdapterUpdateThread::SetInitialConfiguration(void)
 {
   // the option to make XBMC the active source is set
   if (m_configuration.bActivateSource == 1)
+  {
     m_adapter->m_cecAdapter->SetActiveSource();
+    m_adapter->m_bIsActive = true;
+  }
 
   // devices to wake are set
   cec_logical_addresses tvOnly;
@@ -1644,8 +1652,17 @@ bool CPeripheralCecAdapter::ReopenConnection(void)
 
 void CPeripheralCecAdapter::ActivateSource(void)
 {
-  CSingleLock lock(m_critSection);
-  m_bActiveSourcePending = true;
+  if (m_standbySent > 0 && (CDateTime::GetCurrentDateTime() - m_standbySent) <
+          CDateTimeSpan(0, 0, 0, CEC_FORCE_RECONNECT_AFTER_STANDBY))
+  {
+    CLog::Log(LOGDEBUG, "%s - Panasonic bug hit, resetting cec connection...", __FUNCTION__);
+    ReopenConnection();
+  }
+  else
+  {
+    CSingleLock lock(m_critSection);
+    m_bActiveSourcePending = true;
+  }
 }
 
 void CPeripheralCecAdapter::ProcessActivateSource(void)
@@ -1659,7 +1676,10 @@ void CPeripheralCecAdapter::ProcessActivateSource(void)
   }
 
   if (bActivate)
+  {
     m_cecAdapter->SetActiveSource();
+    m_bIsActive = true;
+  }
 }
 
 void CPeripheralCecAdapter::StandbyDevices(void)
@@ -1692,6 +1712,7 @@ void CPeripheralCecAdapter::ProcessStandbyDevices(void)
     {
       CLog::Log(LOGDEBUG, "%s - sending inactive source commands", __FUNCTION__);
       m_cecAdapter->SetInactiveView();
+      m_bIsActive = false;
     }
   }
 }
@@ -1700,13 +1721,13 @@ bool CPeripheralCecAdapter::ToggleDeviceState(CecStateChange mode /*= STATE_SWIT
 {
   if (!IsRunning())
     return false;
-  if (m_cecAdapter->IsLibCECActiveSource() && (mode == STATE_SWITCH_TOGGLE || mode == STATE_STANDBY))
+  if (m_bIsActive && (mode == STATE_SWITCH_TOGGLE || mode == STATE_STANDBY))
   {
     CLog::Log(LOGDEBUG, "%s - putting CEC device on standby...", __FUNCTION__);
     StandbyDevices();
     return false;
   }
-  else if (mode == STATE_SWITCH_TOGGLE || mode == STATE_ACTIVATE_SOURCE)
+  else if (!m_bIsActive && (mode == STATE_SWITCH_TOGGLE || mode == STATE_ACTIVATE_SOURCE))
   {
     CLog::Log(LOGDEBUG, "%s - waking up CEC device...", __FUNCTION__);
     ActivateSource();
