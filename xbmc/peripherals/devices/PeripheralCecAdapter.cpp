@@ -412,7 +412,7 @@ void CPeripheralCecAdapter::Process(void)
         m_standbySent = CDateTime::GetCurrentDateTime();
         m_cecAdapter->StandbyDevices();
       }
-      else if (m_configuration.bSendInactiveSource == 1)
+      if (m_configuration.bSendInactiveSource == 1)
       {
         CLog::Log(LOGDEBUG, "%s - sending inactive source commands", __FUNCTION__);
         m_cecAdapter->SetInactiveView();
@@ -1684,10 +1684,11 @@ void CPeripheralCecAdapter::ProcessStandbyDevices(void)
   {
     if (!m_configuration.powerOffDevices.IsEmpty())
     {
+      CLog::Log(LOGDEBUG, "%s - sending standby commands", __FUNCTION__);
       m_standbySent = CDateTime::GetCurrentDateTime();
       m_cecAdapter->StandbyDevices(CECDEVICE_BROADCAST);
     }
-    else if (m_configuration.bSendInactiveSource == 1)
+    if (m_configuration.bSendInactiveSource == 1)
     {
       CLog::Log(LOGDEBUG, "%s - sending inactive source commands", __FUNCTION__);
       m_cecAdapter->SetInactiveView();
