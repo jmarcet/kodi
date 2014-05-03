@@ -165,6 +165,7 @@ namespace PERIPHERALS
     int                               m_iExitCode;
     bool                              m_bIsMuted;
     bool                              m_bGoingToStandby;
+    bool                              m_bIsActive;
     bool                              m_bIsRunning;
     bool                              m_bDeviceRemoved;
     CPeripheralCecAdapterUpdateThread*m_queryThread;
