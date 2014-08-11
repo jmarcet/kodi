@@ -348,6 +348,8 @@
 #include "utils/AMLUtils.h"
 #endif
 
+#include "cores/FFmpeg.h"
+
 using namespace std;
 using namespace ADDON;
 using namespace XFILE;
@@ -737,6 +739,14 @@ bool CApplication::Create()
   CLog::Log(LOGNOTICE, "Running on Android %d-bit API level %d (%s, %s)", g_sysinfo.GetKernelBitness(), CJNIBuild::SDK_INT, g_sysinfo.GetLinuxDistro().c_str(), g_sysinfo.GetUnameVersion().c_str());
 #elif defined(TARGET_POSIX)
   CLog::Log(LOGNOTICE, "Running on Linux %d-bit (%s, %s)", g_sysinfo.GetKernelBitness(), g_sysinfo.GetLinuxDistro().c_str(), g_sysinfo.GetUnameVersion().c_str());
+  CLog::Log(LOGNOTICE, "FFmpeg version: %s, statically linked: %d", FFMPEG_VERSION, USE_STATIC_FFMPEG);
+if (!strstr(FFMPEG_VERSION, FFMPEG_VER_SHA))
+{
+  if (strstr(FFMPEG_VERSION, "xbmc"))
+    CLog::Log(LOGNOTICE, "WARNING: unknown ffmpeg-xbmc version detected");
+  else
+    CLog::Log(LOGNOTICE, "WARNING: unsupported ffmpeg version detected");
+}
 #elif defined(TARGET_WINDOWS)
   CLog::Log(LOGNOTICE, "Running on %s", g_sysinfo.GetKernelVersion().c_str());
 #endif
@@ -784,6 +794,17 @@ bool CApplication::Create()
 #elif defined(TARGET_WINDOWS)
   CEnvironment::setenv("OS", "win32");
 #endif
+
+  // register ffmpeg lockmanager callback
+  av_lockmgr_register(&ffmpeg_lockmgr_cb);
+  // register avcodec
+  avcodec_register_all();
+  // register avformat
+  av_register_all();
+  // register avfilter
+  avfilter_register_all();
+  // set avutil callback
+  av_log_set_callback(ff_avutil_log);
 
   g_powerManager.Initialize();
 
@@ -915,7 +936,7 @@ bool CApplication::CreateGUI()
 
   uint32_t sdlFlags = 0;
 
-#if defined(HAS_SDL_OPENGL) || (HAS_GLES == 2)
+#if (defined(HAS_SDL_OPENGL) || (HAS_GLES == 2)) && !defined(HAS_GLX)
   sdlFlags |= SDL_INIT_VIDEO;
 #endif
 
@@ -2311,10 +2332,11 @@ void CApplication::Render()
     if (frameTime < singleFrameTime)
       Sleep(singleFrameTime - frameTime);
   }
-  m_lastFrameTime = XbmcThreads::SystemClockMillis();
 
   if (flip)
     g_graphicsContext.Flip(dirtyRegions);
+
+  m_lastFrameTime = XbmcThreads::SystemClockMillis();
   CTimeUtils::UpdateFrameTime(flip);
 
   g_renderManager.UpdateResolution();
@@ -3611,6 +3633,9 @@ void CApplication::Stop(int exitCode)
     // shutdown the AudioEngine
     CAEFactory::Shutdown();
     CAEFactory::UnLoadEngine();
+
+    // unregister ffmpeg lock manager call back
+    av_lockmgr_register(NULL);
 
     CLog::Log(LOGNOTICE, "stopped");
   }

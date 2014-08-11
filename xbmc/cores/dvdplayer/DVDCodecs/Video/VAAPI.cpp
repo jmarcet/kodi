@@ -24,6 +24,17 @@
 #include "DVDVideoCodec.h"
 #include <boost/scoped_array.hpp>
 #include <boost/weak_ptr.hpp>
+#include "utils/log.h"
+#include "threads/SingleLock.h"
+#include "XMemUtils.h"
+#include "utils/CPUInfo.h"
+#include "settings/Settings.h"
+
+extern "C" {
+#include "libavutil/avutil.h"
+}
+
+#define CACHED_BUFFER_SIZE 4096
 
 #define CHECK(a) \
 do { \
@@ -72,11 +83,11 @@ static int compare_version(int major_l, int minor_l, int micro_l, int major_r, i
   return 0;
 }
 
-static void RelBufferS(AVCodecContext *avctx, AVFrame *pic)
-{ ((CDecoder*)((CDVDVideoCodecFFmpeg*)avctx->opaque)->GetHardware())->RelBuffer(avctx, pic); }
+static void RelBufferS(void *opaque, uint8_t *data)
+{ ((CDecoder*)((CDVDVideoCodecFFmpeg*)opaque)->GetHardware())->RelBuffer(data); }
 
-static int GetBufferS(AVCodecContext *avctx, AVFrame *pic) 
-{  return ((CDecoder*)((CDVDVideoCodecFFmpeg*)avctx->opaque)->GetHardware())->GetBuffer(avctx, pic); }
+static int GetBufferS(AVCodecContext *avctx, AVFrame *pic, int flags)
+{  return ((CDecoder*)((CDVDVideoCodecFFmpeg*)avctx->opaque)->GetHardware())->GetBuffer(avctx, pic, flags); }
 
 static inline VASurfaceID GetSurfaceID(AVFrame *pic)
 { return (VASurfaceID)(uintptr_t)pic->data[3]; }
@@ -166,17 +177,22 @@ CDecoder::CDecoder()
   m_context         = 0;
   m_hwaccel         = (vaapi_context*)calloc(1, sizeof(vaapi_context));
   memset(m_surfaces, 0, sizeof(*m_surfaces));
+  m_frame_buffer    = NULL;
+  m_cache           = NULL;
 }
 
 CDecoder::~CDecoder()
 {
   Close();
   free(m_hwaccel);
+  _aligned_free(m_frame_buffer);
+  _aligned_free(m_cache);
+  m_dllSSE4.Unload();
 }
 
-void CDecoder::RelBuffer(AVCodecContext *avctx, AVFrame *pic)
+void CDecoder::RelBuffer(uint8_t *data)
 {
-  VASurfaceID surface = GetSurfaceID(pic);
+  VASurfaceID surface = (VASurfaceID)(uintptr_t)data;
 
   for(std::list<CSurfacePtr>::iterator it = m_surfaces_used.begin(); it != m_surfaces_used.end(); ++it)
   {    
@@ -187,13 +203,9 @@ void CDecoder::RelBuffer(AVCodecContext *avctx, AVFrame *pic)
       break;
     }
   }
-  pic->data[0] = NULL;
-  pic->data[1] = NULL;
-  pic->data[2] = NULL;
-  pic->data[3] = NULL;
 }
 
-int CDecoder::GetBuffer(AVCodecContext *avctx, AVFrame *pic)
+int CDecoder::GetBuffer(AVCodecContext *avctx, AVFrame *pic, int flags)
 {
   VASurfaceID surface = GetSurfaceID(pic);
   CSurface*   wrapper = NULL;
@@ -243,16 +255,23 @@ int CDecoder::GetBuffer(AVCodecContext *avctx, AVFrame *pic)
     m_surfaces_free.erase(it);
   }
 
-  pic->type           = FF_BUFFER_TYPE_USER;
   pic->data[0]        = (uint8_t*)wrapper;
   pic->data[1]        = NULL;
   pic->data[2]        = NULL;
-  pic->data[3]        = (uint8_t*)surface;
+  pic->data[3]        = (uint8_t*)(uintptr_t)surface;
   pic->linesize[0]    = 0;
   pic->linesize[1]    = 0;
   pic->linesize[2]    = 0;
   pic->linesize[3]    = 0;
   pic->reordered_opaque= avctx->reordered_opaque;
+
+  AVBufferRef *buffer = av_buffer_create(pic->data[3], 0, RelBufferS, avctx->opaque, 0);
+  if (!buffer)
+  {
+    CLog::Log(LOGERROR, "VAAPI::%s - error creating buffer", __FUNCTION__);
+    return -1;
+  }
+  pic->buf[0] = buffer;
   return 0;
 }
 
@@ -388,12 +407,16 @@ bool CDecoder::Open(AVCodecContext *avctx, enum PixelFormat fmt, unsigned int su
   if (!EnsureContext(avctx))
     return false;
 
+  if (avctx->width <= 1920 && avctx->height <= 1088)
+    CheckUseFilter();
+  else
+    m_use_filter = false;
+
   m_hwaccel->display     = m_display->get();
 
   avctx->hwaccel_context = m_hwaccel;
-  avctx->get_buffer      = GetBufferS;
-  avctx->reget_buffer    = GetBufferS;
-  avctx->release_buffer  = RelBufferS;
+  avctx->thread_count    = 1;
+  avctx->get_buffer2     = GetBufferS;
   avctx->draw_horiz_band = NULL;
   avctx->slice_flags     = SLICE_FLAG_CODED_ORDER|SLICE_FLAG_ALLOW_FIELD;
   return true;
@@ -471,7 +494,35 @@ int CDecoder::Decode(AVCodecContext* avctx, AVFrame* frame)
     return status;
 
   if(frame)
+  {
+    if (m_use_filter)
+    {
+      VASurfaceID surface = GetSurfaceID(frame);
+      std::list<CSurfacePtr>::iterator it;
+      for(it = m_surfaces_used.begin(); it != m_surfaces_used.end(); ++it)
+      {
+        if((*it)->m_id == surface)
+        {
+          m_holder.surface = *it;
+          break;
+        }
+      }
+      if (it == m_surfaces_used.end())
+      {
+        CLog::Log(LOGERROR, "VAAPI::Decode - surface not found");
+        return VC_ERROR;
+      }
+      CProcPic pic;
+      memset(&pic.frame, 0, sizeof(AVFrame));
+      av_frame_ref(&pic.frame, frame);
+      pic.surface = *it;
+      m_surfaces_proc.push_back(pic);
+      if (m_surfaces_proc.size() < m_renderbuffers_count)
+        return VC_BUFFER;
+    }
+
     return VC_BUFFER | VC_PICTURE;
+  }
   else
     return VC_BUFFER;
 }
@@ -547,6 +598,111 @@ int CDecoder::Check(AVCodecContext* avctx)
 unsigned CDecoder::GetAllowedReferences()
 {
   return m_renderbuffers_count;
+}
+
+void CDecoder::Reset()
+{
+  m_surfaces_proc.clear();
+}
+
+void CDecoder::CheckUseFilter()
+{
+  m_use_filter = true;
+  _aligned_free(m_frame_buffer);
+  _aligned_free(m_cache);
+  if (CSettings::Get().GetBool("videoplayer.usevaapiswfilter"))
+  {
+    if (!(g_cpuInfo.GetCPUFeatures() & CPU_FEATURE_SSE4))
+    {
+      CLog::Log(LOGNOTICE,"VAAPI::CheckUseFilter cpu does not support SSE4");
+      m_use_filter = false;
+      return;
+    }
+    if (!m_dllSSE4.Load())
+    {
+      CLog::Log(LOGNOTICE,"VAAPI::CheckUseFilter failed loading sse4 lib");
+      m_use_filter = false;
+      return;
+    }
+    VAImage image;
+    VASurfaceID surface = m_surfaces_free.front()->m_id;
+    VAStatus status = vaDeriveImage(m_display->get(), surface, &image);
+    m_use_filter = true;
+    if (status != VA_STATUS_SUCCESS)
+    {
+      CLog::Log(LOGNOTICE,"VAAPI::CheckUseFilter vaDeriveImage not supported");
+      m_use_filter = false;
+    }
+    if (image.format.fourcc != VA_FOURCC_NV12)
+    {
+      CLog::Log(LOGNOTICE,"VAAPI::CheckUseFilter image format not NV12");
+      m_use_filter = false;
+    }
+    if ((image.pitches[0] % 64) || (image.pitches[1] % 64))
+    {
+      CLog::Log(LOGNOTICE,"VAAPI::CheckUseFilter patches no multiple of 64");
+      m_use_filter = false;
+    }
+    if (m_use_filter)
+    {
+      m_frame_buffer = (uint8_t*)_aligned_malloc(image.height*image.width*2 + 256, 64);
+      m_cache = (uint8_t*)_aligned_malloc(CACHED_BUFFER_SIZE, 64);
+    }
+    vaDestroyImage(m_display->get(),image.image_id);
+  }
+  else
+  {
+    m_use_filter = false;
+  }
+}
+
+bool CDecoder::MapFrame(AVCodecContext* avctx, AVFrame* frame)
+{
+  if (m_surfaces_proc.empty())
+  {
+    return false;
+  }
+  if(frame)
+  {
+    CProcPic pic = m_surfaces_proc.front();
+    m_surfaces_proc.pop_front();
+    VASurfaceID surface = pic.surface->m_id;
+    VASurfaceStatus surf_status;
+    VAImage image;
+    uint8_t *buf;
+    CHECK(vaQuerySurfaceStatus(m_display->get(), surface, &surf_status))
+    while (surf_status != VASurfaceReady)
+    {
+      Sleep(1);
+      CHECK(vaQuerySurfaceStatus(m_display->get(), surface, &surf_status))
+    }
+    CHECK(vaDeriveImage(m_display->get(), surface, &image));
+    CHECK(vaMapBuffer(m_display->get(), image.buf, (void**)&buf))
+
+    uint8_t *src, *dst;
+    src = buf + image.offsets[0];
+    dst = m_frame_buffer + image.offsets[0];
+    m_dllSSE4.copy_frame(src, dst, m_cache, image.width, image.height, image.pitches[0]);
+    src = buf + image.offsets[1];
+    dst = m_frame_buffer + image.offsets[1];
+    m_dllSSE4.copy_frame(src, dst, m_cache, image.width, image.height/2, image.pitches[1]);
+
+    av_frame_unref(frame);
+    av_frame_move_ref(frame, &pic.frame);
+
+    frame->format = AV_PIX_FMT_NV12;
+    frame->data[0] = m_frame_buffer + image.offsets[0];
+    frame->linesize[0] = image.pitches[0];
+    frame->data[1] = m_frame_buffer + image.offsets[1];
+    frame->linesize[1] = image.pitches[1];
+    frame->data[2] = NULL;
+    frame->data[3] = NULL;
+    frame->pkt_size = image.data_size;
+
+    CHECK(vaUnmapBuffer(m_display->get(), image.buf))
+    CHECK(vaDestroyImage(m_display->get(),image.image_id))
+  }
+  return true;
 }
 
 #endif
