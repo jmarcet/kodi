@@ -66,7 +66,7 @@
       <volumeplus>VolumeUp</volumeplus>
       <volumeminus>VolumeDown</volumeminus>
       <mute>Mute</mute>
-      <power>ShutDown()</power>
+      <power>CECToggleState(true)</power>
       <myvideo>ActivateWindow(MyVideos)</myvideo>
       <mymusic>ActivateWindow(MyMusic)</mymusic>
       <mypictures>ActivateWindow(MyPictures)</mypictures>
