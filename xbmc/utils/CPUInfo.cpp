@@ -18,6 +18,7 @@
  *
  */
 
+#include "system.h"
 #include "CPUInfo.h"
 #include "Temperature.h"
 #include <string>
@@ -94,6 +95,10 @@
 #include "log.h"
 #include "settings/AdvancedSettings.h"
 #include "utils/StringUtils.h"
+
+#ifdef HAS_LIBAMCODEC
+#include "utils/AMLUtils.h"
+#endif
 
 using namespace std;
 
@@ -253,7 +258,11 @@ CCPUInfo::CCPUInfo(void)
   }
 #else
   m_fProcStat = fopen("/proc/stat", "r");
-  m_fProcTemperature = fopen("/proc/acpi/thermal_zone/THM0/temperature", "r");
+     m_fProcTemperature = fopen("/sys/class/hwmon/hwmon1/temp1_input", "r");   // On Amlogic
+  if (m_fProcTemperature == NULL)
+     m_fProcTemperature = fopen("/sys/class/hwmon/hwmon0/temp1_input", "r");   // On Amlogic
+  if (m_fProcTemperature == NULL)
+    m_fProcTemperature = fopen("/proc/acpi/thermal_zone/THM0/temperature", "r");
   if (m_fProcTemperature == NULL)
     m_fProcTemperature = fopen("/proc/acpi/thermal_zone/THRM/temperature", "r");
   if (m_fProcTemperature == NULL)
