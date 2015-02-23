@@ -380,6 +380,8 @@ public:
 
   void SetLoggingIn(bool loggingIn) { m_loggingIn = loggingIn; }
 
+  bool ScreenSaverDisablesAutoScrolling();
+
 protected:
   virtual bool OnSettingsSaving() const;
 
