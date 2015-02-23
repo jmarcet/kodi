@@ -2001,19 +2001,15 @@ void CAMLCodec::Process()
 
         double error = app_pts - (double)pts_video/PTS_FREQ;
         double abs_error = fabs(error);
-        if (abs_error > 0.125)
+        if (abs_error > 0.150)
         {
-          //CLog::Log(LOGDEBUG, "CAMLCodec::Process pts diff = %f", error);
-          if (abs_error > 0.150)
-          {
-            // big error so try to reset pts_pcrscr
-            SetVideoPtsSeconds(app_pts);
-          }
-          else
-          {
-            // small error so try to avoid a frame jump
-            SetVideoPtsSeconds((double)pts_video/PTS_FREQ + error/4);
-          }
+          // big error so try to reset pts_pcrscr
+          SetVideoPtsSeconds(app_pts);
+        }
+        else
+        {
+          // small error so try to avoid a frame jump
+          SetVideoPtsSeconds((double)pts_video/PTS_FREQ + error/4);
         }
       }
     }
