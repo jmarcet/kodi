@@ -13080,3 +13080,13 @@ msgstr "Метод открытия/воспроизведения дисков 
 msgctxt "#38010"
 msgid "GPU accelerated"
 msgstr "Ускорение при помощи видеокарты"
+
+#: system/settings/settings.xml
+msgctxt "#60001"
+msgid "Use software decoding for SD video content"
+msgstr "Использовать программное декодирование для SD видео контента"
+
+#: system/settings/settings.xml
+msgctxt "#60002"
+msgid "Use software decoding for Standard Definition video content (< 720p)"
+msgstr "Использовать программное декодирование для видео контента с разрешением < 720"

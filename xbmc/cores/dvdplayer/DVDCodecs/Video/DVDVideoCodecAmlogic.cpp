@@ -24,6 +24,8 @@
 #include "DVDClock.h"
 #include "DVDStreamInfo.h"
 #include "AMLCodec.h"
+#include "settings/Settings.h"
+#include "settings/VideoSettings.h"
 #include "utils/AMLUtils.h"
 #include "utils/BitstreamConverter.h"
 #include "utils/log.h"
@@ -61,7 +63,11 @@ CDVDVideoCodecAmlogic::~CDVDVideoCodecAmlogic()
 bool CDVDVideoCodecAmlogic::Open(CDVDStreamInfo &hints, CDVDCodecOptions &options)
 {
   m_hints = hints;
-
+  if ((EDECODEMETHOD)CSettings::Get().GetInt("videoplayer.decodingmethod") == VS_DECODEMETHOD_HARDWARE && CSettings::Get().GetBool("videoplayer.useswdecodingforsd") && m_hints.width < 1280)
+     {
+       CLog::Log(LOGDEBUG, "Use Software decoding for SD content");
+        return false;
+  }
   switch(m_hints.codec)
   {
     case AV_CODEC_ID_MJPEG:

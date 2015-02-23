@@ -16124,3 +16124,13 @@ msgstr ""
 msgctxt "#38010"
 msgid "GPU accelerated"
 msgstr ""
+
+#: system/settings/settings.xml
+msgctxt "#60001"
+msgid "Use software decoding for SD video content"
+msgstr ""
+
+#: system/settings/settings.xml
+msgctxt "#60002"
+msgid "Use software decoding for Standard Definition video content (< 720p)"
+msgstr ""
