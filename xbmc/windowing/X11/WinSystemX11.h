@@ -25,7 +25,7 @@
 
 #include "system_gl.h"
 
-#if defined(HAS_GLX)
+#if defined(HAS_GLX) || defined(HAVE_LIBEGL)
 #include <GL/glx.h>
 #endif
 
