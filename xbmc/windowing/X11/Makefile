@@ -1,3 +1,5 @@
+CXXFLAGS+=-fpermissive
+
 SRCS=WinSystemX11.cpp \
      WinSystemX11GL.cpp \
      WinSystemX11GLES.cpp \
