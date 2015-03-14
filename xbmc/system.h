@@ -222,6 +222,7 @@
 
 // EGL detected. Dont use GLX!
 #ifdef HAVE_LIBEGL
+#undef HAS_GL
 #undef HAS_GLX
 #define HAS_EGL
 #endif
@@ -229,12 +230,14 @@
 // GLES2.0 detected. Dont use GL!
 #ifdef HAVE_LIBGLESV2
 #undef HAS_GL
+#undef HAS_GLX
 #define HAS_GLES 2
 #endif
 
 // GLES1.0 detected. Dont use GL!
 #ifdef HAVE_LIBGLES
 #undef HAS_GL
+#undef HAS_GLX
 #define HAS_GLES 1
 #endif
 
