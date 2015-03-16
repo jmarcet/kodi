@@ -255,8 +255,8 @@ KeyMap keyMap[] = {
   { KEY_QUESTION      , XBMCK_HELP        },
   { KEY_BACK          , XBMCK_BACKSPACE   },
   { KEY_SELECT        , XBMCK_RETURN      },
-  { KEY_RED           , XBMCK_TAB         },
-  { KEY_GREEN         , XBMCK_z           },
+  { KEY_RED           , XBMCK_l           },
+  { KEY_GREEN         , XBMCK_o           },
   { KEY_YELLOW        , XBMCK_i           },
   { KEY_BLUE          , XBMCK_c           },
   // The Little Black Box Remote Additions
