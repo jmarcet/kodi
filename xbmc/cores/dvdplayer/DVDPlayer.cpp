@@ -1925,7 +1925,7 @@ bool CDVDPlayer::CheckPlayerInit(CCurrentStream& current)
   {
     if(current.dts == DVD_NOPTS_VALUE)
     {
-      CLog::Log(LOGDEBUG, "%s - dropping packet type:%d dts:%f to get to start point at %f", __FUNCTION__, current.player,  current.dts, current.startpts);
+      //CLog::Log(LOGDEBUG, "%s - dropping packet type:%d dts:%f to get to start point at %f", __FUNCTION__, current.player,  current.dts, current.startpts);
       return true;
     }
 
@@ -1944,7 +1944,7 @@ bool CDVDPlayer::CheckPlayerInit(CCurrentStream& current)
 
     if(current.dts < current.startpts)
     {
-      CLog::Log(LOGDEBUG, "%s - dropping packet type:%d dts:%f to get to start point at %f", __FUNCTION__, current.player,  current.dts, current.startpts);
+      //CLog::Log(LOGDEBUG, "%s - dropping packet type:%d dts:%f to get to start point at %f", __FUNCTION__, current.player,  current.dts, current.startpts);
       return true;
     }
   }
