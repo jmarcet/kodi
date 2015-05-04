@@ -866,11 +866,6 @@ elif test "$use_arch" = "arm"; then
       [ CFLAGS="$SAVE_CFLAGS -Wa,-march=armv6 -mtune=cortex-a8 -mthumb-interwork"
         CXXFLAGS="$CXXFLAGS -Wa,-march=armv6 -mtune=cortex-a8 -mthumb-interwork"    
         use_cpu=cortex-a8])
-  else
-    if test "$use_neon" = "yes"; then 
-      CFLAGS="$CFLAGS -mfpu=neon -mvectorize-with-neon-quad"
-      CXXFLAGS="$CXXFLAGS -mfpu=neon -mvectorize-with-neon-quad"
-    fi
   fi
 fi
 
