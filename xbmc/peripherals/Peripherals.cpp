@@ -672,6 +672,7 @@ bool CPeripherals::ToggleDeviceState(CecStateChange mode /*= STATE_SWITCH_TOGGLE
   return ret;
 }
 
+#if 0
 bool CPeripherals::GetNextKeypress(float frameTime, CKey &key)
 {
   vector<CPeripheral *> peripherals;
@@ -692,6 +693,7 @@ bool CPeripherals::GetNextKeypress(float frameTime, CKey &key)
 
   return false;
 }
+#endif
 
 void CPeripherals::OnSettingChanged(const CSetting *setting)
 {
