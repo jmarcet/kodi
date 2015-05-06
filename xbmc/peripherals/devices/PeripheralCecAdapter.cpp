@@ -119,11 +119,11 @@ void CPeripheralCecAdapter::ResetMembers(void)
   delete m_dll;
   m_dll                      = NULL;
   m_bStarted                 = false;
-  m_bHasButton               = false;
+  //m_bHasButton             = false;
   m_bIsReady                 = false;
   m_bHasConnectedAudioSystem = false;
   m_strMenuLanguage          = "???";
-  m_lastKeypress             = 0;
+  //m_lastKeypress           = 0;
   m_lastChange               = VOLUME_CHANGE_NONE;
   m_iExitCode                = EXITCODE_QUIT;
   m_bIsMuted                 = false; // TODO fetch the correct initial value when system audiostatus is implemented in libCEC
@@ -137,8 +137,8 @@ void CPeripheralCecAdapter::ResetMembers(void)
   m_bPlaybackPaused          = false;
   m_queryThread              = NULL;
 
-  m_currentButton.iButton    = 0;
-  m_currentButton.iDuration  = 0;
+  //m_currentButton.iButton  = 0;
+  //m_currentButton.iDuration= 0;
   m_standbySent.SetValid(false);
   m_configuration.Clear();
 }
@@ -244,7 +244,7 @@ bool CPeripheralCecAdapter::InitialiseFeature(const PeripheralFeature feature)
     SetConfigurationFromSettings();
     m_callbacks.Clear();
     m_callbacks.CBCecLogMessage           = &CecLogMessage;
-    m_callbacks.CBCecKeyPress             = &CecKeyPress;
+    //m_callbacks.CBCecKeyPress           = &CecKeyPress;
     m_callbacks.CBCecCommand              = &CecCommand;
     m_callbacks.CBCecConfigurationChanged = &CecConfiguration;
     m_callbacks.CBCecAlert                = &CecAlert;
@@ -468,22 +468,25 @@ void CPeripheralCecAdapter::ProcessVolumeChange(void)
         m_volumeChangeQueue.pop();
 
       /* send another keypress after VOLUME_REFRESH_TIMEOUT ms */
-      bool bRefresh(XbmcThreads::SystemClockMillis() - m_lastKeypress > VOLUME_REFRESH_TIMEOUT);
+      //bool bRefresh(XbmcThreads::SystemClockMillis() - m_lastKeypress > VOLUME_REFRESH_TIMEOUT);
 
       /* only send the keypress when it hasn't been sent yet */
       if (pendingVolumeChange != m_lastChange)
       {
-        m_lastKeypress = XbmcThreads::SystemClockMillis();
+        //m_lastKeypress = XbmcThreads::SystemClockMillis();
         m_lastChange = pendingVolumeChange;
       }
+#if 0
       else if (bRefresh)
       {
         m_lastKeypress = XbmcThreads::SystemClockMillis();
         pendingVolumeChange = m_lastChange;
       }
+#endif
       else
         pendingVolumeChange = VOLUME_CHANGE_NONE;
     }
+#if 0
     else if (m_lastKeypress > 0 && XbmcThreads::SystemClockMillis() - m_lastKeypress > VOLUME_CHANGE_TIMEOUT)
     {
       /* send a key release */
@@ -491,6 +494,7 @@ void CPeripheralCecAdapter::ProcessVolumeChange(void)
       bSendRelease = true;
       m_lastChange = VOLUME_CHANGE_NONE;
     }
+#endif
   }
 
   switch (pendingVolumeChange)
@@ -660,6 +664,7 @@ int CPeripheralCecAdapter::CecCommand(void *cbParam, const cec_command command)
         adapter->SetMenuLanguage(strNewLanguage);
       }
       break;
+#if 0
     case CEC_OPCODE_DECK_CONTROL:
       if (command.initiator == CECDEVICE_TV &&
           command.parameters.size == 1 &&
@@ -691,6 +696,7 @@ int CPeripheralCecAdapter::CecCommand(void *cbParam, const cec_command command)
         }
       }
       break;
+#endif
     default:
       break;
     }
@@ -755,6 +761,7 @@ int CPeripheralCecAdapter::CecAlert(void *cbParam, const libcec_alert alert, con
   return 1;
 }
 
+#if 0
 int CPeripheralCecAdapter::CecKeyPress(void *cbParam, const cec_keypress key)
 {
   CPeripheralCecAdapter *adapter = (CPeripheralCecAdapter *)cbParam;
@@ -1125,6 +1132,7 @@ void CPeripheralCecAdapter::ResetButton(void)
     m_currentButton.iDuration = 0;
   }
 }
+#endif
 
 void CPeripheralCecAdapter::OnSettingChanged(const std::string &strChangedSetting)
 {

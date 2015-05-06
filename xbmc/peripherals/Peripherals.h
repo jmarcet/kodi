@@ -196,7 +196,7 @@ namespace PERIPHERALS
      * @param key The fetched key.
      * @return True when a keypress was fetched, false otherwise.
      */
-    virtual bool GetNextKeypress(float frameTime, CKey &key);
+    //virtual bool GetNextKeypress(float frameTime, CKey &key);
 
     bool SupportsCEC(void) const
     {

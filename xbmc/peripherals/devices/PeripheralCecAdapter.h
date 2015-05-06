@@ -134,9 +134,11 @@ namespace PERIPHERALS
     void ProcessStandbyDevices(void);
     void ProcessVolumeChange(void);
 
+#if 0
     void PushCecKeypress(const CEC::cec_keypress &key);
     void PushCecKeypress(const CecButtonPress &key);
     void GetNextKey(void);
+#endif
 
     void SetAudioSystemConnected(bool bSetTo);
     void SetMenuLanguage(const char *strLanguage);
@@ -147,20 +149,20 @@ namespace PERIPHERALS
     static int CecConfiguration(void *cbParam, const CEC::libcec_configuration config);
     static int CecAlert(void *cbParam, const CEC::libcec_alert alert, const CEC::libcec_parameter data);
     static void CecSourceActivated(void *param, const CEC::cec_logical_address address, const uint8_t activated);
-    static int CecKeyPress(void *cbParam, const CEC::cec_keypress key);
+    //static int CecKeyPress(void *cbParam, const CEC::cec_keypress key);
 
     DllLibCEC*                        m_dll;
     CEC::ICECAdapter*                 m_cecAdapter;
     bool                              m_bStarted;
-    bool                              m_bHasButton;
+    //bool                            m_bHasButton;
     bool                              m_bIsReady;
     bool                              m_bHasConnectedAudioSystem;
-    std::string                        m_strMenuLanguage;
+    std::string                       m_strMenuLanguage;
     CDateTime                         m_standbySent;
-    std::vector<CecButtonPress>       m_buttonQueue;
-    CecButtonPress                    m_currentButton;
+    //std::vector<CecButtonPress>     m_buttonQueue;
+    //CecButtonPress                  m_currentButton;
     std::queue<CecVolumeChange>       m_volumeChangeQueue;
-    unsigned int                      m_lastKeypress;
+    //unsigned int                    m_lastKeypress;
     CecVolumeChange                   m_lastChange;
     int                               m_iExitCode;
     bool                              m_bIsMuted;
@@ -177,7 +179,7 @@ namespace PERIPHERALS
     bool                              m_bActiveSourceBeforeStandby;
     bool                              m_bOnPlayReceived;
     bool                              m_bPlaybackPaused;
-    std::string                        m_strComPort;
+    std::string                       m_strComPort;
   };
 
   class CPeripheralCecAdapterUpdateThread : public CThread
