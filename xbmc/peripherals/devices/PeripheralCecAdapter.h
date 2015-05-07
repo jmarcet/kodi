@@ -30,11 +30,13 @@ namespace PERIPHERALS
   class CPeripheralCecAdapter : public CPeripheral
   {
   public:
+#if 0
     bool HasAudioControl(void) { return false; }
     void VolumeUp(void) {}
     void VolumeDown(void) {}
     bool IsMuted(void) { return false; }
     void ToggleMute(void) {}
+#endif
     bool ToggleDeviceState(CecStateChange mode = STATE_SWITCH_TOGGLE, bool forceType = false) { return false; }
 
     int GetButton(void) { return 0; }
@@ -92,12 +94,14 @@ namespace PERIPHERALS
 
     void Announce(ANNOUNCEMENT::AnnouncementFlag flag, const char *sender, const char *message, const CVariant &data);
 
+#if 0
     // audio control
     bool HasAudioControl(void);
     void VolumeUp(void);
     void VolumeDown(void);
     void ToggleMute(void);
     bool IsMuted(void);
+#endif
 
     // CPeripheral callbacks
     void OnSettingChanged(const std::string &strChangedSetting);
@@ -132,15 +136,15 @@ namespace PERIPHERALS
 
     void ProcessActivateSource(void);
     void ProcessStandbyDevices(void);
+#if 0
     void ProcessVolumeChange(void);
 
-#if 0
     void PushCecKeypress(const CEC::cec_keypress &key);
     void PushCecKeypress(const CecButtonPress &key);
     void GetNextKey(void);
-#endif
 
     void SetAudioSystemConnected(bool bSetTo);
+#endif
     void SetMenuLanguage(const char *strLanguage);
 
     // callbacks from libCEC
@@ -193,7 +197,7 @@ namespace PERIPHERALS
 
   protected:
     void UpdateMenuLanguage(void);
-    std::string UpdateAudioSystemStatus(void);
+    //std::string UpdateAudioSystemStatus(void);
     bool WaitReady(void);
     bool SetInitialConfiguration(void);
     void Process(void);

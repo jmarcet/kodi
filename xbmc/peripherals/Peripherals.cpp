@@ -592,6 +592,7 @@ CPeripheral *CPeripherals::GetByPath(const std::string &strPath) const
 
 bool CPeripherals::OnAction(const CAction &action)
 {
+#if 0
   if (action.GetID() == ACTION_MUTE)
   {
     return ToggleMute();
@@ -616,10 +617,12 @@ bool CPeripherals::OnAction(const CAction &action)
       }
     }
   }
+#endif
 
   return false;
 }
 
+#if 0
 bool CPeripherals::IsMuted(void)
 {
   vector<CPeripheral *> peripherals;
@@ -654,6 +657,7 @@ bool CPeripherals::ToggleMute(void)
 
   return false;
 }
+#endif
 
 bool CPeripherals::ToggleDeviceState(CecStateChange mode /*= STATE_SWITCH_TOGGLE */, unsigned int iPeripheral /*= 0 */)
 {

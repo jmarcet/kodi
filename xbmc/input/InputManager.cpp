@@ -221,7 +221,6 @@ bool CInputManager::ProcessGamepad(int windowId)
   return false;
 }
 
-#if 0
 bool CInputManager::ProcessRemote(int windowId)
 {
 #if defined(HAS_LIRC) || defined(HAS_IRSERVERSUITE)
@@ -235,6 +234,7 @@ bool CInputManager::ProcessRemote(int windowId)
   return false;
 }
 
+#if 0
 bool CInputManager::ProcessPeripherals(float frameTime)
 {
   CKey key;
@@ -421,7 +421,7 @@ bool CInputManager::Process(int windowId, float frameTime)
 #endif
 
   // process input actions
-  //ProcessRemote(windowId);
+  ProcessRemote(windowId);
   ProcessGamepad(windowId);
   ProcessEventServer(windowId, frameTime);
   //ProcessPeripherals(frameTime);
