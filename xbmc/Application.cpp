@@ -4452,8 +4452,10 @@ void CApplication::ShowVolumeBar(const CAction *action)
 
 bool CApplication::IsMuted() const
 {
+#if 0
   if (g_peripherals.IsMuted())
     return true;
+#endif
   return CAEFactory::IsMuted();
 }
 
@@ -4476,8 +4478,10 @@ void CApplication::SetMute(bool mute)
 
 void CApplication::Mute()
 {
+#if 0
   if (g_peripherals.Mute())
     return;
+#endif
 
   CAEFactory::SetMute(true);
   m_muted = true;
@@ -4486,8 +4490,10 @@ void CApplication::Mute()
 
 void CApplication::UnMute()
 {
+#if 0
   if (g_peripherals.UnMute())
     return;
+#endif
 
   CAEFactory::SetMute(false);
   m_muted = false;
