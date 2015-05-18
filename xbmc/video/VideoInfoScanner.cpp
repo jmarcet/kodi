@@ -277,7 +277,7 @@ namespace VIDEO
       return true;
 
     std::string hash, dbHash;
-    if (content == CONTENT_MOVIES ||content == CONTENT_MUSICVIDEOS)
+    if (content == CONTENT_MOVIES ||content == CONTENT_MUSICVIDEOS || CSettings::Get().GetBool("videolibrary.importall"))
     {
       if (m_handle)
       {
@@ -464,7 +464,16 @@ namespace VIDEO
         FoundSomeInfo = true;
       else if (ret == INFO_NOT_FOUND)
       {
-        CLog::Log(LOGWARNING, "No information found for item '%s', it won't be added to the library.", CURL::GetRedacted(pItem->GetPath()).c_str());
+        if (CSettings::Get().GetBool("videolibrary.importall") && !pItem->m_bIsFolder) {
+          FoundSomeInfo = true;
+          CLog::Log(LOGWARNING, "No information found for item '%s', adding anyway to the library.", CURL::GetRedacted(pItem->GetPath()).c_str());
+
+        }
+        else {
+          FoundSomeInfo = false;
+          CLog::Log(LOGWARNING, "No information found for item '%s', it won't be added to the library.", CURL::GetRedacted(pItem->GetPath()).c_str());
+          break;
+        }
       }
 
       pURL = NULL;
@@ -606,7 +615,7 @@ namespace VIDEO
       {
         pItem->GetVideoInfoTag()->m_strTitle = CURL(pItem->GetPath()).GetFileNameWithoutPath();
         CURL::Decode(pItem->GetVideoInfoTag()->m_strTitle);
-        if (AddVideo(pItem, CONTENT_MOVIES, bDirNames, useLocal) < 0)
+        if (AddVideo(pItem, CONTENT_MOVIES, bDirNames, useLocal) < 0 && AddVideo(pItem, CONTENT_MUSICVIDEOS, bDirNames, useLocal) < 0)
           return INFO_ERROR;
         return INFO_ADDED;
       }
