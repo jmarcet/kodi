@@ -256,13 +256,14 @@ void CApplicationMessenger::ProcessMessage(ThreadMessage *pMsg)
 
     case TMSG_POWERDOWN:
       {
-        g_application.Stop(EXITCODE_POWERDOWN);
+        g_application.SetExitCode(EXITCODE_POWERDOWN);
         g_powerManager.Powerdown();
       }
       break;
 
     case TMSG_QUIT:
       {
+        g_application.SetExitCode(EXITCODE_QUIT);
         g_application.Stop(EXITCODE_QUIT);
       }
       break;
@@ -282,7 +283,7 @@ void CApplicationMessenger::ProcessMessage(ThreadMessage *pMsg)
     case TMSG_RESTART:
     case TMSG_RESET:
       {
-        g_application.Stop(EXITCODE_REBOOT);
+        g_application.SetExitCode(EXITCODE_REBOOT);
         g_powerManager.Reboot();
       }
       break;
@@ -290,6 +291,7 @@ void CApplicationMessenger::ProcessMessage(ThreadMessage *pMsg)
     case TMSG_RESTARTAPP:
       {
 #if defined(TARGET_WINDOWS) || defined(TARGET_LINUX)
+        g_application.SetExitCode(EXITCODE_RESTARTAPP);
         g_application.Stop(EXITCODE_RESTARTAPP);
 #endif
       }
