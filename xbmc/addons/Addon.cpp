@@ -44,6 +44,10 @@
 #include <string.h>
 #include <ostream>
 
+#include <iostream>
+#include <dirent.h>
+#include <sys/stat.h>
+
 using XFILE::CDirectory;
 using XFILE::CFile;
 using namespace std;
@@ -673,6 +677,28 @@ void OnPostInstall(const AddonPtr& addon, bool update, bool modal)
 
   if (CAddonMgr::Get().GetAddon(addon->ID(), localAddon, ADDON_CONTEXT_ITEM))
     CContextMenuManager::Get().Register(std::static_pointer_cast<CContextItemAddon>(localAddon));
+
+  // OE: make binary addons executable, creddits to vpeter4
+  std::string addonDirPath;
+  std::string chmodFilePath;
+  DIR *addonsDir;
+  struct dirent *fileDirent;
+  struct stat fileStat;
+  int statRet;
+
+  addonDirPath = "/storage/.kodi/addons/" + addon->ID() + "/bin/";
+  if ((addonsDir = opendir(addonDirPath.c_str())) != NULL)
+  {
+    while ((fileDirent = readdir(addonsDir)) != NULL)
+    {
+      chmodFilePath = addonDirPath + fileDirent->d_name;
+      statRet = stat(chmodFilePath.c_str(), &fileStat);
+      if (statRet == 0 && (fileStat.st_mode & S_IFMT) != S_IFDIR)
+        chmod(chmodFilePath.c_str(), fileStat.st_mode | S_IXUSR | S_IXGRP | S_IXOTH);
+    }
+    closedir(addonsDir);
+  }
+  // OE
 
   addon->OnPostInstall(update, modal);
 }
