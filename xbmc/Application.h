@@ -154,6 +154,7 @@ public:
   bool StartPVRManager();
   void StopPVRManager();
   bool IsCurrentThread() const;
+  void SetExitCode(int exitCode);
   void Stop(int exitCode);
   void RestartApp();
   void UnloadSkin(bool forReload = false);
