@@ -272,7 +272,6 @@ const infomap system_labels[] =  {{ "hasnetwork",       SYSTEM_ETHERNET_LINK_ACT
                                   { "currentwindow",    SYSTEM_CURRENT_WINDOW },
                                   { "currentcontrol",   SYSTEM_CURRENT_CONTROL },
                                   { "dvdlabel",         SYSTEM_DVD_LABEL },
-                                  { "internetstate",    SYSTEM_INTERNET_STATE },
                                   { "osversioninfo",    SYSTEM_OS_VERSION_INFO },
                                   { "kernelversion",    SYSTEM_OS_VERSION_INFO }, // old, not correct name
                                   { "uptime",           SYSTEM_UPTIME },
