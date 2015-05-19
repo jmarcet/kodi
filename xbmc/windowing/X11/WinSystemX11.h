@@ -54,6 +54,7 @@ public:
   virtual bool ResizeWindow(int newWidth, int newHeight, int newLeft, int newTop);
   virtual bool SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool blankOtherDisplays);
   virtual void UpdateResolutions();
+  virtual bool CanDoWindowed() { return false; }
   virtual int  GetNumScreens() { return 1; }
   virtual int  GetCurrentScreen() { return m_nScreen; }
   virtual void ShowOSMouse(bool show);
