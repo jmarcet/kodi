@@ -4717,7 +4717,6 @@ bool CApplication::SwitchToFullScreen(bool force /* = false */)
 
 void CApplication::Minimize()
 {
-  g_Windowing.Minimize();
 }
 
 PLAYERCOREID CApplication::GetCurrentPlayer()
