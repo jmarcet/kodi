@@ -457,8 +457,8 @@ bool CSettings::InitializeDefinitions()
   if (CFile::Exists(SETTINGS_XML_FOLDER "android.xml") && !Initialize(SETTINGS_XML_FOLDER "android.xml"))
     CLog::Log(LOGFATAL, "Unable to load android-specific settings definitions");
 #if defined(HAS_LIBAMCODEC)
-  if (aml_present() && CFile::Exists(SETTINGS_XML_FOLDER "aml-android.xml") && !Initialize(SETTINGS_XML_FOLDER "aml-android.xml"))
-    CLog::Log(LOGFATAL, "Unable to load aml-android-specific settings definitions");
+  if (aml_present() && CFile::Exists(SETTINGS_XML_FOLDER "aml.xml") && !Initialize(SETTINGS_XML_FOLDER "aml.xml"))
+    CLog::Log(LOGFATAL, "Unable to load aml-specific settings definitions");
 #endif // defined(HAS_LIBAMCODEC)
 #elif defined(TARGET_RASPBERRY_PI)
   if (CFile::Exists(SETTINGS_XML_FOLDER "rbp.xml") && !Initialize(SETTINGS_XML_FOLDER "rbp.xml"))
