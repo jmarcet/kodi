@@ -2593,12 +2593,19 @@ bool CApplication::Cleanup()
   }
 }
 
+void CApplication::SetExitCode(int exitCode)
+{
+  // save it for CEC
+  m_ExitCode = exitCode;
+  m_ExitCodeSet = true;
+}
+
 void CApplication::Stop(int exitCode)
 {
   try
   {
     CVariant vExitCode(CVariant::VariantTypeObject);
-    vExitCode["exitcode"] = exitCode;
+    vExitCode["exitcode"] = m_ExitCode;
     CAnnouncementManager::Get().Announce(System, "xbmc", "OnQuit", vExitCode);
 
     // Abort any active screensaver
@@ -2625,7 +2632,6 @@ void CApplication::Stop(int exitCode)
 
     m_bStop = true;
     m_AppFocused = false;
-    m_ExitCode = exitCode;
     CLog::Log(LOGNOTICE, "stop all");
 
     // cancel any jobs from the jobmanager
