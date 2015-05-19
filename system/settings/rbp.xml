@@ -27,6 +27,13 @@
           <control type="edit" format="integer" />
         </setting>
       </group>
+      <group id="3">
+        <setting id="videoplayer.supportdtshd" type="boolean" label="38120" help="38121">
+          <level>2</level>
+          <default>false</default>
+          <control type="toggle" />
+        </setting>
+      </group>
     </category>
     <category id="myvideos">
       <group id="1">
