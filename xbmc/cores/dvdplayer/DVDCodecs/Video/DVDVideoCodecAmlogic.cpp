@@ -74,6 +74,7 @@ bool CDVDVideoCodecAmlogic::Open(CDVDStreamInfo &hints, CDVDCodecOptions &option
       m_pFormatName = "am-mjpeg";
       break;
     case AV_CODEC_ID_MPEG1VIDEO:
+      return false;
     case AV_CODEC_ID_MPEG2VIDEO:
     case AV_CODEC_ID_MPEG2VIDEO_XVMC:
       m_mpeg2_sequence_pts = 0;
