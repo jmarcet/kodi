@@ -25,6 +25,7 @@
 #include "interfaces/Builtins.h"
 #include "utils/Variant.h"
 #include "utils/Splash.h"
+#include "utils/SysfsUtils.h"
 #include "LangInfo.h"
 #include "utils/Screenshot.h"
 #include "Util.h"
@@ -3689,6 +3690,20 @@ bool CApplication::WakeUpScreenSaverAndDPMS(bool bPowerOffKeyPressed /* = false 
     // Screensaver deactivated -> acquire wake lock
     CXBMCApp::EnableWakeLock(true);
 #endif
+#ifdef TARGET_LINUX
+    std::string strGovernors;
+    SysfsUtils::GetString("/sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors", strGovernors);
+    if (strGovernors.find("interactive") != std::string::npos)
+    {
+        SysfsUtils::SetString("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor", "interactive");
+        CLog::Log(LOGNOTICE, "Screensaver deactivated - interactive scheduler enabled");
+    }
+    else if (strGovernors.find("ondemand") != std::string::npos)
+    {
+        SysfsUtils::SetString("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor", "ondemand");
+        CLog::Log(LOGNOTICE, "Screensaver deactivated - ondemand scheduler enabled");
+    }
+#endif
   }
 
   return result;
@@ -3837,6 +3852,20 @@ void CApplication::ActivateScreenSaver(bool forceType /*= false */)
 #ifdef TARGET_ANDROID
     // Default screensaver activated -> release wake lock
     CXBMCApp::EnableWakeLock(false);
+#endif
+#ifdef TARGET_LINUX
+    std::string strGovernors;
+    SysfsUtils::GetString("/sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors", strGovernors);
+    if (strGovernors.find("hotplug") != std::string::npos)
+    {
+        SysfsUtils::SetString("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor", "hotplug");
+        CLog::Log(LOGNOTICE, "Screensaver activated - hotplug scheduler enabled");
+    }
+    else if (strGovernors.find("conservative") != std::string::npos)
+    {
+        SysfsUtils::SetString("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor", "conservative");
+        CLog::Log(LOGNOTICE, "Screensaver activated - conservative scheduler enabled");
+    }
 #endif
     return;
   }
