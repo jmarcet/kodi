@@ -56,10 +56,13 @@
       <backspace>Back</backspace>
       <backspace mod="long">ActivateWindow(Home)</backspace>
       <key id='65446'>Back</key>
+      <a>ActivateWindow(Videos,videodb://movies/titles/)</a>
+      <l>ActivateWindow(Videos,videodb://tvshows/titles/)</l>
       <m>ActivateWindow(PlayerControls)</m>
       <s>ActivateWindow(shutdownmenu)</s>
       <escape>Back</escape>
       <i>Info</i>
+      <o>ActivateWindow(Settings)</o>
       <menu>ContextMenu</menu>
       <c>ContextMenu</c>
       <space>Pause</space>
@@ -97,12 +100,12 @@
       <backslash>ToggleFullScreen</backslash>
       <home>FirstPage</home>
       <end>LastPage</end>
-      <power>ActivateWindow(shutdownmenu)</power>
-      <sleep>ActivateWindow(shutdownmenu)</sleep>
+      <power>CECToggleState</power>
+      <sleep>CECStandby</sleep>
       <!-- PVR windows -->
       <e>ActivateWindow(TVGuide)</e>
       <h>ActivateWindow(TVChannels)</h>
-      <j>ActivateWindow(RadioChannels)</j>
+      <j>ActivateWindow(Favourites)</j>
       <k>ActivateWindow(TVRecordings)</k>
       <b>ActivateWindow(TVTimers)</b>
       <!-- Multimedia keyboard keys -->
@@ -166,8 +169,8 @@
   </LoginScreen>
   <Home>
     <keyboard>
-      <i>info</i>
-      <end mod="ctrl">ShutDown()</end>
+      <i>ActivateWindow(SystemInfo)</i>
+      <delete>ShutDown()</delete>
     </keyboard>
   </Home>
   <VirtualKeyboard>
@@ -264,12 +267,12 @@
       <z>AspectRatio</z>
       <t>ShowSubtitles</t>
       <t mod="ctrl">SubtitleAlign</t>
+      <a>AudioNextLanguage</a>
       <l>NextSubtitle</l>
       <left>StepBack</left>
       <right>StepForward</right>
       <up>ChapterOrBigStepForward</up>
       <down>ChapterOrBigStepBack</down>
-      <a>AudioDelay</a>
       <escape>Fullscreen</escape>
       <c>Playlist</c>
       <v>ActivateWindow(Teletext)</v>
@@ -426,7 +429,6 @@
       <z>AspectRatio</z>
       <t>ShowSubtitles</t>
       <l>NextSubtitle</l>
-      <a>AudioDelay</a>
       <escape>Fullscreen</escape>
       <return>Select</return>
       <enter>Select</enter>      <!-- backspace>Fullscreen</backspace -->
@@ -518,6 +520,7 @@
   <Favourites>
     <keyboard>
       <backspace>Close</backspace>
+      <j>Close</j>
       <u>MoveItemUp</u>
       <d>MoveItemDown</d>
     </keyboard>
@@ -589,4 +592,16 @@
       <f4>Blue</f4>
     </keyboard>
   </Addon>
+  <Settings>
+    <keyboard>
+      <i>Back</i>
+      <o>Back</o>
+    </keyboard>
+  </Settings>
+  <SystemInfo>
+    <keyboard>
+      <i>Back</i>
+      <o>Back</o>
+    </keyboard>
+  </SystemInfo>
 </keymap>
