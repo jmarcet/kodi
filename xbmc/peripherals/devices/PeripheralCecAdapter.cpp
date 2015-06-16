@@ -643,15 +643,6 @@ int CPeripheralCecAdapter::CecCommand(void *cbParam, const cec_command command)
             CApplicationMessenger::Get().MediaPause();
         }
         CApplicationMessenger::Get().ActivateScreensaver();
-        if (command.initiator == CECDEVICE_TV &&
-            (adapter->m_configuration.bPowerOffOnStandby == 1 || adapter->m_configuration.bShutdownOnStandby == 1))
-        {
-          adapter->m_bStarted = false;
-          if (adapter->m_configuration.bPowerOffOnStandby == 1)
-            g_application.ExecuteXBMCAction("Suspend");
-          else if (adapter->m_configuration.bShutdownOnStandby == 1)
-            g_application.ExecuteXBMCAction("Shutdown");
-        }
       }
       break;
     case CEC_OPCODE_SET_MENU_LANGUAGE:
@@ -1285,22 +1276,15 @@ void CPeripheralCecAdapter::SetConfigurationFromLibCEC(const CEC::libcec_configu
   m_configuration.bPowerOnScreensaver = config.bPowerOnScreensaver;
   bChanged |= SetSetting("cec_wake_screensaver", m_configuration.bPowerOnScreensaver == 1);
 
-  m_configuration.bPowerOffOnStandby = config.bPowerOffOnStandby;
-
   m_configuration.bSendInactiveSource = config.bSendInactiveSource;
   bChanged |= SetSetting("send_inactive_source", m_configuration.bSendInactiveSource == 1);
 
   m_configuration.iFirmwareVersion = config.iFirmwareVersion;
-  m_configuration.bShutdownOnStandby = config.bShutdownOnStandby;
 
   memcpy(m_configuration.strDeviceLanguage, config.strDeviceLanguage, 3);
   m_configuration.iFirmwareBuildDate = config.iFirmwareBuildDate;
 
   SetVersionInfo(m_configuration);
-
-  bChanged |= SetSetting("standby_pc_on_tv_standby",
-             m_configuration.bPowerOffOnStandby == 1 ? 13011 :
-             m_configuration.bShutdownOnStandby == 1 ? 13005 : 36028);
 
   if (bChanged)
     CLog::Log(LOGDEBUG, "SetConfigurationFromLibCEC - settings updated by libCEC");
@@ -1381,11 +1365,6 @@ void CPeripheralCecAdapter::SetConfigurationFromSettings(void)
   m_configuration.bPowerOffScreensaver = GetSettingBool("cec_standby_screensaver") ? 1 : 0;
   m_configuration.bPowerOnScreensaver  = GetSettingBool("cec_wake_screensaver") ? 1 : 0;
   m_configuration.bSendInactiveSource  = GetSettingBool("send_inactive_source") ? 1 : 0;
-
-  // read the mutually exclusive boolean settings
-  int iStandbyAction(GetSettingInt("standby_pc_on_tv_standby"));
-  m_configuration.bPowerOffOnStandby = iStandbyAction == 13011 ? 1 : 0;
-  m_configuration.bShutdownOnStandby = iStandbyAction == 13005 ? 1 : 0;
 
 #if defined(CEC_DOUBLE_TAP_TIMEOUT_MS_OLD)
   // double tap prevention timeout in ms. libCEC uses 50ms units for this in 2.2.0, so divide by 50
