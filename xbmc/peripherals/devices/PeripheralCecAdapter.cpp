@@ -34,6 +34,8 @@
 #include "settings/AdvancedSettings.h"
 #include "utils/log.h"
 #include "utils/Variant.h"
+#include "pvr/recordings/PVRRecordings.h"
+#include "pvr/PVRManager.h"
 
 #include <libcec/cec.h>
 
@@ -619,8 +621,13 @@ int CPeripheralCecAdapter::CecCommand(void *cbParam, const cec_command command)
       if (!adapter->m_standbySent.IsValid() || CDateTime::GetCurrentDateTime() - adapter->m_standbySent > CDateTimeSpan(0, 0, 0, SCREENSAVER_TIMEOUT))
       {
         adapter->m_standbySent = CDateTime::GetCurrentDateTime();
-        if (adapter->GetSettingBool("pause_playback_on_deactivate"))
-          CApplicationMessenger::Get().MediaPauseIfPlaying();
+        if (adapter->GetSettingBool("pause_playback_on_deactivate") && g_application.m_pPlayer->IsPlaying())
+        {
+          if (PVR::g_PVRManager.IsPlaying() && !PVR::g_PVRManager.IsPlayingRecording())
+            CApplicationMessenger::Get().MediaStop();
+          else if (!g_application.m_pPlayer->IsPaused())
+            CApplicationMessenger::Get().MediaPause();
+        }
         CApplicationMessenger::Get().ActivateScreensaver();
       }
       break;
@@ -1677,8 +1684,13 @@ void CPeripheralCecAdapter::ProcessStandbyDevices(void)
 
   if (bStandby)
   {
-    if (GetSettingBool("pause_playback_on_deactivate"))
-      CApplicationMessenger::Get().MediaPauseIfPlaying();
+    if (GetSettingBool("pause_playback_on_deactivate") && g_application.m_pPlayer->IsPlaying())
+    {
+      if (PVR::g_PVRManager.IsPlaying() && !PVR::g_PVRManager.IsPlayingRecording())
+        CApplicationMessenger::Get().MediaStop();
+      else if (!g_application.m_pPlayer->IsPaused())
+        CApplicationMessenger::Get().MediaPause();
+    }
     CApplicationMessenger::Get().ActivateScreensaver();
     if (!m_configuration.powerOffDevices.IsEmpty())
     {
