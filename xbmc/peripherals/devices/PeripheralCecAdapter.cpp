@@ -1151,7 +1151,7 @@ void CPeripheralCecAdapter::CecSourceActivated(void *cbParam, const CEC::cec_log
   if (!adapter)
     return;
 
-  if (adapter->m_standbySent.IsValid() && CDateTime::GetCurrentDateTime() - adapter->m_standbySent < CDateTimeSpan(0, 0, 0, SCREENSAVER_TIMEOUT))
+  if (adapter->m_standbySent.IsValid() && CDateTime::GetCurrentDateTime() - adapter->m_standbySent < CDateTimeSpan(0, 0, 0, CEC_SUPPRESS_ACTIVATE_SOURCE_AFTER_ON_STOP))
     return;
 
   // wake up the screensaver, so the user doesn't switch to a black screen
@@ -1162,25 +1162,14 @@ void CPeripheralCecAdapter::CecSourceActivated(void *cbParam, const CEC::cec_log
   {
     bool bShowingSlideshow = (g_windowManager.GetActiveWindow() == WINDOW_SLIDESHOW);
     CGUIWindowSlideShow *pSlideShow = bShowingSlideshow ? (CGUIWindowSlideShow *)g_windowManager.GetWindow(WINDOW_SLIDESHOW) : NULL;
-    bool bPlayingAndDeactivated = activated == 0 && (
-        (pSlideShow && pSlideShow->IsPlaying()) || g_application.m_pPlayer->IsPlaying());
-    bool bPausedAndActivated = activated == 1 && (
-        (pSlideShow && pSlideShow->IsPaused()) || g_application.m_pPlayer->IsPausedPlayback());
-    if (bPlayingAndDeactivated)
-      adapter->m_bPlaybackPaused = false;
-    else if (bPausedAndActivated)
-      adapter->m_bPlaybackPaused = true;
 
-    if (bPlayingAndDeactivated || bPausedAndActivated)
-    {
-      sleep(5);
-      if (pSlideShow)
-        // pause/resume slideshow
-        pSlideShow->OnAction(CAction(ACTION_PAUSE));
-      else
-        // pause/resume player
-        CApplicationMessenger::Get().MediaPause();
-    }
+    sleep(10);
+    if (pSlideShow)
+      // resume slideshow
+      pSlideShow->OnAction(CAction(ACTION_PLAYER_PLAY));
+    else
+      // resume player
+      CApplicationMessenger::Get().MediaUnPause();
   }
 }
 
