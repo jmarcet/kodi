@@ -164,16 +164,13 @@ void CPeripheralCecAdapter::Announce(AnnouncementFlag flag, const char *sender, 
       if (bIgnoreDeactivate)
         CLog::Log(LOGDEBUG, "%s - ignoring OnScreensaverDeactivated for power action", __FUNCTION__);
     }
-    if (m_configuration.bPowerOnScreensaver == 1 && !bIgnoreDeactivate &&
-        m_configuration.bActivateSource == 1)
-    {
+    if (!bIgnoreDeactivate)
       ActivateSource();
-    }
   }
   else if (flag == GUI && !strcmp(sender, "xbmc") && !strcmp(message, "OnScreensaverActivated") && m_bIsReady)
   {
     // Don't put devices to standby if application is currently playing
-    if ((!g_application.m_pPlayer->IsPlaying() && !g_application.m_pPlayer->IsPaused()) && m_configuration.bPowerOffScreensaver == 1)
+    if (!g_application.m_pPlayer->IsPlaying() && !g_application.m_pPlayer->IsPaused())
     {
       // only power off when we're the active source
       if (m_cecAdapter->IsLibCECActiveSource())
@@ -216,8 +213,7 @@ void CPeripheralCecAdapter::Announce(AnnouncementFlag flag, const char *sender, 
     bool bActivateSource(false);
     {
       CSingleLock lock(m_critSection);
-      bActivateSource = (m_configuration.bActivateSource &&
-          !m_bOnPlayReceived &&
+      bActivateSource = (!m_bOnPlayReceived &&
           !m_cecAdapter->IsLibCECActiveSource() &&
           (!m_preventActivateSourceOnPlay.IsValid() || CDateTime::GetCurrentDateTime() - m_preventActivateSourceOnPlay > CDateTimeSpan(0, 0, 0, CEC_SUPPRESS_ACTIVATE_SOURCE_AFTER_ON_STOP)));
       m_bOnPlayReceived = true;
@@ -401,7 +397,6 @@ void CPeripheralCecAdapter::Process(void)
     bSendStandbyCommands = m_iExitCode != EXITCODE_REBOOT &&
                            m_iExitCode != EXITCODE_RESTARTAPP &&
                            !m_bDeviceRemoved &&
-                           (!m_bGoingToStandby || GetSettingBool("standby_tv_on_pc_standby")) &&
                            GetSettingBool("enabled");
 
     if (m_bGoingToStandby)
@@ -418,11 +413,8 @@ void CPeripheralCecAdapter::Process(void)
         m_standbySent = CDateTime::GetCurrentDateTime();
         m_cecAdapter->StandbyDevices();
       }
-      if (m_configuration.bSendInactiveSource == 1)
-      {
-        CLog::Log(LOGDEBUG, "%s - sending inactive source commands", __FUNCTION__);
-        m_cecAdapter->SetInactiveView();
-      }
+      CLog::Log(LOGDEBUG, "%s - sending inactive source commands", __FUNCTION__);
+      m_cecAdapter->SetInactiveView();
     }
     else
     {
@@ -1267,18 +1259,6 @@ void CPeripheralCecAdapter::SetConfigurationFromLibCEC(const CEC::libcec_configu
   m_configuration.bUseTVMenuLanguage = config.bUseTVMenuLanguage;
   bChanged |= SetSetting("use_tv_menu_language", m_configuration.bUseTVMenuLanguage == 1);
 
-  m_configuration.bActivateSource = config.bActivateSource;
-  bChanged |= SetSetting("activate_source", m_configuration.bActivateSource == 1);
-
-  m_configuration.bPowerOffScreensaver = config.bPowerOffScreensaver;
-  bChanged |= SetSetting("cec_standby_screensaver", m_configuration.bPowerOffScreensaver == 1);
-
-  m_configuration.bPowerOnScreensaver = config.bPowerOnScreensaver;
-  bChanged |= SetSetting("cec_wake_screensaver", m_configuration.bPowerOnScreensaver == 1);
-
-  m_configuration.bSendInactiveSource = config.bSendInactiveSource;
-  bChanged |= SetSetting("send_inactive_source", m_configuration.bSendInactiveSource == 1);
-
   m_configuration.iFirmwareVersion = config.iFirmwareVersion;
 
   memcpy(m_configuration.strDeviceLanguage, config.strDeviceLanguage, 3);
@@ -1361,10 +1341,6 @@ void CPeripheralCecAdapter::SetConfigurationFromSettings(void)
 
   // read the boolean settings
   m_configuration.bUseTVMenuLanguage   = GetSettingBool("use_tv_menu_language") ? 1 : 0;
-  m_configuration.bActivateSource      = GetSettingBool("activate_source") ? 1 : 0;
-  m_configuration.bPowerOffScreensaver = GetSettingBool("cec_standby_screensaver") ? 1 : 0;
-  m_configuration.bPowerOnScreensaver  = GetSettingBool("cec_wake_screensaver") ? 1 : 0;
-  m_configuration.bSendInactiveSource  = GetSettingBool("send_inactive_source") ? 1 : 0;
 
 #if defined(CEC_DOUBLE_TAP_TIMEOUT_MS_OLD)
   // double tap prevention timeout in ms. libCEC uses 50ms units for this in 2.2.0, so divide by 50
@@ -1480,15 +1456,9 @@ bool CPeripheralCecAdapterUpdateThread::UpdateConfiguration(libcec_configuration
 
 bool CPeripheralCecAdapterUpdateThread::WaitReady(void)
 {
-  // don't wait if we're not powering up anything
-  if (m_configuration.wakeDevices.IsEmpty() && m_configuration.bActivateSource == 0)
-    return true;
-
   // wait for the TV if we're configured to become the active source.
   // wait for the first device in the wake list otherwise.
-  cec_logical_address waitFor = (m_configuration.bActivateSource == 1) ?
-      CECDEVICE_TV :
-      m_configuration.wakeDevices.primary;
+  cec_logical_address waitFor = CECDEVICE_TV;
 
   cec_power_status powerStatus(CEC_POWER_STATUS_UNKNOWN);
   bool bContinue(true);
@@ -1552,14 +1522,12 @@ std::string CPeripheralCecAdapterUpdateThread::UpdateAudioSystemStatus(void)
 
 bool CPeripheralCecAdapterUpdateThread::SetInitialConfiguration(void)
 {
-  // the option to make XBMC the active source is set
-  if (m_configuration.bActivateSource == 1)
-    m_adapter->m_cecAdapter->SetActiveSource();
+  m_adapter->m_cecAdapter->SetActiveSource();
 
   // devices to wake are set
   cec_logical_addresses tvOnly;
   tvOnly.Clear(); tvOnly.Set(CECDEVICE_TV);
-  if (!m_configuration.wakeDevices.IsEmpty() && (m_configuration.wakeDevices != tvOnly || m_configuration.bActivateSource == 0))
+  if (!m_configuration.wakeDevices.IsEmpty() && m_configuration.wakeDevices != tvOnly)
     m_adapter->m_cecAdapter->PowerOnDevices(CECDEVICE_BROADCAST);
 
   // wait until devices are powered up
@@ -1728,11 +1696,8 @@ void CPeripheralCecAdapter::ProcessStandbyDevices(void)
       m_standbySent = CDateTime::GetCurrentDateTime();
       m_cecAdapter->StandbyDevices(CECDEVICE_BROADCAST);
     }
-    if (m_configuration.bSendInactiveSource == 1)
-    {
-      CLog::Log(LOGDEBUG, "%s - sending inactive source commands", __FUNCTION__);
-      m_cecAdapter->SetInactiveView();
-    }
+    CLog::Log(LOGDEBUG, "%s - sending inactive source commands", __FUNCTION__);
+    m_cecAdapter->SetInactiveView();
   }
 }
 
