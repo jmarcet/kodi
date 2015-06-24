@@ -218,8 +218,12 @@ void CPeripheralCecAdapter::Announce(AnnouncementFlag flag, const char *sender, 
           (!m_preventActivateSourceOnPlay.IsValid() || CDateTime::GetCurrentDateTime() - m_preventActivateSourceOnPlay > CDateTimeSpan(0, 0, 0, CEC_SUPPRESS_ACTIVATE_SOURCE_AFTER_ON_STOP)));
       m_bOnPlayReceived = true;
     }
+    CLog::Log(LOGNOTICE, "%s - OnPlay received", __FUNCTION__);
     if (bActivateSource)
+    {
+      CLog::Log(LOGNOTICE, "%s - OnPlay received after CEC_SUPPRESS_ACTIVATE_SOURCE_AFTER_ON_STOP CEC_SUPPRESS_AFTER_STANDBY, obeying it", __FUNCTION__);
       ActivateSource();
+    }
   }
 }
 
@@ -617,9 +621,11 @@ int CPeripheralCecAdapter::CecCommand(void *cbParam, const cec_command command)
     switch (command.opcode)
     {
     case CEC_OPCODE_STANDBY:
+      CLog::Log(LOGNOTICE, "CEC_OPCODE_STANDBY received", __FUNCTION__);
       /* a device was put in standby mode */
-      if (!adapter->m_standbySent.IsValid() || CDateTime::GetCurrentDateTime() - adapter->m_standbySent > CDateTimeSpan(0, 0, 0, SCREENSAVER_TIMEOUT))
+      if (!adapter->m_standbySent.IsValid() || CDateTime::GetCurrentDateTime() - adapter->m_standbySent > CDateTimeSpan(0, 0, 0, CEC_SUPPRESS_ACTIVATE_SOURCE_AFTER_ON_STOP))
       {
+        CLog::Log(LOGNOTICE, "CEC_OPCODE_STANDBY after CEC_SUPPRESS_ACTIVATE_SOURCE_AFTER_ON_STOP seconds, obeying it", __FUNCTION__);
         adapter->m_standbySent = CDateTime::GetCurrentDateTime();
         if (adapter->GetSettingBool("pause_playback_on_deactivate") && g_application.m_pPlayer->IsPlaying())
         {
@@ -1151,8 +1157,11 @@ void CPeripheralCecAdapter::CecSourceActivated(void *cbParam, const CEC::cec_log
   if (!adapter)
     return;
 
-  if (adapter->m_standbySent.IsValid() && CDateTime::GetCurrentDateTime() - adapter->m_standbySent < CDateTimeSpan(0, 0, 0, SCREENSAVER_TIMEOUT))
+  if (adapter->m_standbySent.IsValid() && CDateTime::GetCurrentDateTime() - adapter->m_standbySent <= CDateTimeSpan(0, 0, 0, CEC_SUPPRESS_ACTIVATE_SOURCE_AFTER_ON_STOP))
+  {
+    CLog::Log(LOGNOTICE, "%s - within CEC_SUPPRESS_ACTIVATE_SOURCE_AFTER_ON_STOP seconds, ignoring it", __FUNCTION__);
     return;
+  }
 
   // wake up the screensaver, so the user doesn't switch to a black screen
   if (activated == 1)
@@ -1162,25 +1171,14 @@ void CPeripheralCecAdapter::CecSourceActivated(void *cbParam, const CEC::cec_log
   {
     bool bShowingSlideshow = (g_windowManager.GetActiveWindow() == WINDOW_SLIDESHOW);
     CGUIWindowSlideShow *pSlideShow = bShowingSlideshow ? (CGUIWindowSlideShow *)g_windowManager.GetWindow(WINDOW_SLIDESHOW) : NULL;
-    bool bPlayingAndDeactivated = activated == 0 && (
-        (pSlideShow && pSlideShow->IsPlaying()) || g_application.m_pPlayer->IsPlaying());
-    bool bPausedAndActivated = activated == 1 && (
-        (pSlideShow && pSlideShow->IsPaused()) || g_application.m_pPlayer->IsPausedPlayback());
-    if (bPlayingAndDeactivated)
-      adapter->m_bPlaybackPaused = false;
-    else if (bPausedAndActivated)
-      adapter->m_bPlaybackPaused = true;
 
-    if (bPlayingAndDeactivated || bPausedAndActivated)
-    {
-      sleep(5);
-      if (pSlideShow)
-        // pause/resume slideshow
-        pSlideShow->OnAction(CAction(ACTION_PAUSE));
-      else
-        // pause/resume player
-        CApplicationMessenger::Get().MediaPause();
-    }
+    sleep(8);
+    if (pSlideShow)
+      // resume slideshow
+      pSlideShow->OnAction(CAction(ACTION_PLAYER_PLAY));
+    else
+      // resume player
+      CApplicationMessenger::Get().MediaUnPause();
   }
 }
 
