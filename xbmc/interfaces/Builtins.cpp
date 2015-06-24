@@ -264,9 +264,7 @@ bool CBuiltins::IsSystemPowerdownCommand(const std::string& execString)
   if (execute == "reboot"    ||
       execute == "restart"   ||
       execute == "reset"     ||
-      execute == "powerdown" ||
-      execute == "hibernate" ||
-      execute == "suspend" )
+      execute == "powerdown" )
   {
     return true;
   }
@@ -335,15 +333,15 @@ int CBuiltins::Execute(const std::string& execString)
   }
   else if (execute == "hibernate")
   {
-    CApplicationMessenger::Get().Hibernate();
+    CApplicationMessenger::Get().CECStandby();
   }
   else if (execute == "suspend")
   {
-    CApplicationMessenger::Get().Suspend();
+    CApplicationMessenger::Get().CECStandby();
   }
   else if (execute == "quit")
   {
-    CApplicationMessenger::Get().Quit();
+    CApplicationMessenger::Get().RestartApp();
   }
   else if (execute == "inhibitidleshutdown")
   {
