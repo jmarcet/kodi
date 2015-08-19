@@ -60,7 +60,7 @@
       <l>ActivateWindow(Videos,videodb://tvshows/titles/)</l>
       <m>ActivateWindow(PlayerControls)</m>
       <s>ActivateWindow(shutdownmenu)</s>
-      <escape>PreviousMenu</escape>
+      <escape>Back</escape>
       <i>Info</i>
       <o>ActivateWindow(Settings)</o>
       <menu>ContextMenu</menu>
@@ -176,6 +176,7 @@
   <VirtualKeyboard>
     <keyboard>
       <backspace>Backspace</backspace>
+      <escape>PreviousMenu</escape>
     </keyboard>
   </VirtualKeyboard>
   <MyTVChannels>
