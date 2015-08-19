@@ -67,13 +67,26 @@ void CEGLNativeTypeAmlogic::Initialize()
   aml_permissions();
   aml_cpufreq_min(true);
   aml_cpufreq_max(true);
-  return;
+  GetMaxResolution(m_maxResolution);
 }
+
+void CEGLNativeTypeAmlogic::GetMaxResolution(RESOLUTION_INFO &maxResolution)
+{
+  std::vector<RESOLUTION_INFO> resolutions;
+  ProbeResolutions(resolutions);
+
+  maxResolution = {0};
+  for (size_t i = 0; i < resolutions.size(); i++)
+  {
+    if (resolutions[i].iScreenWidth > maxResolution.iScreenWidth || resolutions[i].iScreenHeight > maxResolution.iScreenHeight)
+      maxResolution = resolutions[i];
+  }
+}
+
 void CEGLNativeTypeAmlogic::Destroy()
 {
   aml_cpufreq_min(false);
   aml_cpufreq_max(false);
-  return;
 }
 
 bool CEGLNativeTypeAmlogic::CreateNativeDisplay()
@@ -89,8 +102,8 @@ bool CEGLNativeTypeAmlogic::CreateNativeWindow()
   if (!nativeWindow)
     return false;
 
-  nativeWindow->width = 1920;
-  nativeWindow->height = 1080;
+  nativeWindow->width = m_maxResolution.iScreenWidth;
+  nativeWindow->height = m_maxResolution.iScreenHeight;
   m_nativeWindow = nativeWindow;
 
   SetFramebufferResolution(nativeWindow->width, nativeWindow->height);
@@ -145,48 +158,78 @@ bool CEGLNativeTypeAmlogic::SetNativeResolution(const RESOLUTION_INFO &res)
     ((fbdev_window *)m_nativeWindow)->height = res.iScreenHeight;
   }
 
-  switch((int)(0.5 + res.fRefreshRate))
+  switch((int)(res.fRefreshRate*10))
   {
     default:
-    case 60:
+    case 600:
       switch(res.iScreenWidth)
       {
         default:
         case 1280:
-          SetDisplayResolution("720p");
+          return SetDisplayResolution("720p");
           break;
         case 1920:
           if (res.dwFlags & D3DPRESENTFLAG_INTERLACED)
-            SetDisplayResolution("1080i");
+            return SetDisplayResolution("1080i");
           else
-            SetDisplayResolution("1080p");
+            return SetDisplayResolution("1080p");
           break;
       }
       break;
-    case 50:
+    case 500:
       switch(res.iScreenWidth)
       {
         default:
         case 1280:
-          SetDisplayResolution("720p50hz");
+          return SetDisplayResolution("720p50hz");
           break;
         case 1920:
           if (res.dwFlags & D3DPRESENTFLAG_INTERLACED)
-            SetDisplayResolution("1080i50hz");
+            return SetDisplayResolution("1080i50hz");
           else
-            SetDisplayResolution("1080p50hz");
+            return SetDisplayResolution("1080p50hz");
           break;
       }
       break;
-    case 30:
-      SetDisplayResolution("1080p30hz");
+    case 300:
+      switch(res.iScreenWidth)
+      {
+        case 3840:
+          return SetDisplayResolution("4k2k30hz");
+          break;
+        default:
+          return SetDisplayResolution("1080p30hz");
+          break;
+      }
       break;
-    case 24:
-      SetDisplayResolution("1080p24hz");
+    case 250:
+      switch(res.iScreenWidth)
+      {
+        case 3840:
+          return SetDisplayResolution("4k2k25hz");
+          break;
+        default:
+          return SetDisplayResolution("1080p25hz");
+          break;
+      }
+      break;
+    case 240:
+      switch(res.iScreenWidth)
+      {
+        case 3840:
+          return SetDisplayResolution("4k2k24hz");
+          break;
+        case 4096:
+          return SetDisplayResolution("4k2ksmpte");
+          break;
+        default:
+          return SetDisplayResolution("1080p24hz");
+          break;
+      }
       break;
   }
 
-  return true;
+  return false;
 }
 
 bool CEGLNativeTypeAmlogic::ProbeResolutions(std::vector<RESOLUTION_INFO> &resolutions)
@@ -255,8 +298,8 @@ void CEGLNativeTypeAmlogic::SetFramebufferResolution(int width, int height) cons
     {
       vinfo.xres = width;
       vinfo.yres = height;
-      vinfo.xres_virtual = 1920;
-      vinfo.yres_virtual = 2160;
+      vinfo.xres_virtual = m_maxResolution.iScreenWidth;
+      vinfo.yres_virtual = m_maxResolution.iScreenHeight * 2;
       vinfo.bits_per_pixel = 32;
       vinfo.activate = FB_ACTIVATE_ALL;
       ioctl(fd0, FBIOPUT_VSCREENINFO, &vinfo);
