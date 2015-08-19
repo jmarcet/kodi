@@ -385,6 +385,8 @@ public:
    */
   void UnregisterActionListener(IActionListener *listener);
 
+  bool ScreenSaverDisablesAutoScrolling();
+
 protected:
   virtual bool OnSettingsSaving() const;
 
